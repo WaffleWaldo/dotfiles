@@ -1,0 +1,19 @@
+# Backups
+*.bak
+*~
+
+# Editor swap/temp files
+*.swp
+*.swo
+.*.swp
+*~
+\#*\#
+.#*
+
+# OS junk
+.DS_Store
+Thumbs.db
+.directory
+
+# Stow internal
+.stow-local-ignore
