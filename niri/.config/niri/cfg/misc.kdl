@@ -1,5 +1,21 @@
     prefer-no-csd
-    screenshot-path null
+    screenshot-path "~/Pictures/Screenshots/Screenshot-from-%Y-%m-%d-%H-%M-%S.png"
+
+    cursor {
+        xcursor-size 20
+        xcursor-theme "Bibata-Original-Ice"
+    }
+
+    overview {
+        workspace-shadow {
+            off
+        }
+        backdrop-color "transparent"
+    }
+
+    gestures {
+        hot-corners {}
+    }
 
     environment {
         ELECTRON_OZONE_PLATFORM_HINT "auto"
@@ -7,7 +23,10 @@
         QT_WAYLAND_DISABLE_WINDOWDECORATION "1"
         XDG_SESSION_TYPE "wayland"
         XDG_CURRENT_DESKTOP "niri"
-        QT_QPA_PLATFORMTHEME "gtk3"
+        QT_QPA_PLATFORMTHEME "qt6ct"
+        CLUTTER_BACKEND "wayland"
+        MOZ_ENABLE_WAYLAND "1"
+        SDL_VIDEODRIVER "wayland"
     }
 
     debug {

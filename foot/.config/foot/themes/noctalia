@@ -1,0 +1,24 @@
+[cursor]
+color=e4e2e6 c5c6d0
+
+[colors]
+background=121316
+foreground=e4e2e6
+
+regular0=181818
+regular1=ffb4ab
+regular2=b1c5ff
+regular3=385ba9
+regular4=b1c5ff
+regular5=e0bbdd
+regular6=c0c6dc
+regular7=BAC2DE
+
+bright0=585B70
+bright1=F38BA8
+bright2=A6E3A1
+bright3=F9E2AF
+bright4=89B4FA
+bright5=F5C2E7
+bright6=94E2D5
+bright7=A6ADC8

@@ -1,29 +1,72 @@
 # Dotfiles
 
-CachyOS configuration files managed with [GNU Stow](https://www.gnu.org/software/stow/).
+CachyOS + niri + noctalia-shell configuration files managed with [GNU Stow](https://www.gnu.org/software/stow/).
+
+Inspired by [linuxmobile/shin](https://github.com/linuxmobile/shin).
 
 ## Setup
 
 ```bash
 git clone git@github.com:wafflewaldo/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-stow env bash zsh fish niri noctalia alacritty kitty gtk-qt micro
+stow env bash zsh fish niri noctalia alacritty ghostty foot kitty gtk-qt micro starship fastfetch yazi
+```
+
+### Dependencies
+
+```bash
+paru -S --needed niri ghostty foot alacritty starship zoxide fzf bat atuin yazi \
+  cliphist wl-clipboard swww apple-fonts ttf-nerd-fonts-symbols noto-fonts-emoji \
+  bibata-cursor-theme whitesur-icon-theme spotify-launcher
+flatpak install flathub org.nickvision.cavalier
 ```
 
 ## Packages
 
-| Package     | Contents                                               | Activate           | Deactivate           |
-|-------------|--------------------------------------------------------|--------------------|-----------------------|
-| `env`       | `.profile` (shared env vars)                           | `stow env`         | `stow -D env`         |
-| `bash`      | `.bashrc`, `.bash_profile`                             | `stow bash`        | `stow -D bash`        |
-| `zsh`       | `.zshrc`                                               | `stow zsh`         | `stow -D zsh`         |
-| `fish`      | `.config/fish/config.fish`                             | `stow fish`        | `stow -D fish`        |
-| `niri`      | `config.kdl` + 8 modular cfg files                     | `stow niri`        | `stow -D niri`        |
-| `noctalia`  | `settings.json`, `colors.json`, `plugins.json`         | `stow noctalia`    | `stow -D noctalia`    |
-| `alacritty` | `alacritty.toml` + `themes/noctalia.toml`              | `stow alacritty`   | `stow -D alacritty`   |
-| `kitty`     | `themes/noctalia.conf`                                 | `stow kitty`       | `stow -D kitty`       |
-| `gtk-qt`    | GTK 3/4 settings, qt5ct, Kvantum                       | `stow gtk-qt`      | `stow -D gtk-qt`      |
-| `micro`     | `settings.json`                                        | `stow micro`       | `stow -D micro`       |
+| Package      | Contents                                               | Activate            | Deactivate            |
+|--------------|--------------------------------------------------------|---------------------|-----------------------|
+| `env`        | `.profile` (shared env vars)                           | `stow env`          | `stow -D env`         |
+| `bash`       | `.bashrc`, `.bash_profile`                             | `stow bash`         | `stow -D bash`        |
+| `zsh`        | `.zshrc`                                               | `stow zsh`          | `stow -D zsh`         |
+| `fish`       | `.config/fish/config.fish`                             | `stow fish`         | `stow -D fish`        |
+| `niri`       | `config.kdl` + 8 modular cfg files                     | `stow niri`         | `stow -D niri`        |
+| `noctalia`   | `settings.json`, `colors.json`, `plugins.json`         | `stow noctalia`     | `stow -D noctalia`    |
+| `ghostty`    | `config` + `themes/noctalia` (SF Mono, noctalia)       | `stow ghostty`      | `stow -D ghostty`     |
+| `foot`       | `foot.ini` + `themes/noctalia` (SF Mono, transparent)  | `stow foot`         | `stow -D foot`        |
+| `alacritty`  | `alacritty.toml` + `themes/noctalia.toml`              | `stow alacritty`    | `stow -D alacritty`   |
+| `kitty`      | `themes/noctalia.conf`                                 | `stow kitty`        | `stow -D kitty`       |
+| `starship`   | `starship.toml` (minimal prompt)                       | `stow starship`     | `stow -D starship`    |
+| `fastfetch`  | `config.jsonc` + `logo.png` (sixel image logo)         | `stow fastfetch`    | `stow -D fastfetch`   |
+| `yazi`       | `yazi.toml` + `theme.toml`                             | `stow yazi`         | `stow -D yazi`        |
+| `gtk-qt`     | GTK 3/4 settings, qt5ct, Kvantum                       | `stow gtk-qt`       | `stow -D gtk-qt`      |
+| `micro`      | `settings.json`                                        | `stow micro`        | `stow -D micro`       |
+
+## Theming
+
+- **Color scheme**: Noctalia (Material You dark, `#131316` base)
+- **Cursor**: Bibata-Original-Ice (size 20)
+- **Icons**: WhiteSur
+- **Font (UI)**: SF Pro Display
+- **Font (terminal)**: SF Mono (Foot/Ghostty), JetBrains Mono (Alacritty)
+- **GTK theme**: adw-gtk3-dark
+
+## Keybinds (niri)
+
+| Key                  | Action                    |
+|----------------------|---------------------------|
+| `Mod+Return`         | Open Foot                 |
+| `Mod+Shift+Return`   | Open Ghostty              |
+| `Mod+D`              | App launcher              |
+| `Mod+V`              | Clipboard history         |
+| `Mod+Q`              | Close window              |
+| `Mod+Space`           | Toggle floating            |
+| `Mod+S`              | Cycle preset widths       |
+| `Mod+1/2/3/4`        | Set column 25/50/75/100%  |
+| `Mod+Comma`          | Consume into column       |
+| `Mod+Shift+Period`    | Expel from column         |
+| `Mod+W`              | Toggle tabbed display     |
+| `Print`              | Screenshot (screen)       |
+| `Mod+Shift+S`        | Screenshot (region)       |
 
 ## Adding a new tool
 
@@ -40,13 +83,3 @@ cd ~/dotfiles && stow -D toolname
 ```
 
 Symlinks are removed but the package stays in git history.
-
-## Alternative themes
-
-Extra theme files live in `extras/themes/`. To try one:
-
-```bash
-cp extras/themes/alacritty/gruvbox.toml alacritty/.config/alacritty/themes/noctalia.toml
-```
-
-To revert: `git checkout -- alacritty/.config/alacritty/themes/noctalia.toml`

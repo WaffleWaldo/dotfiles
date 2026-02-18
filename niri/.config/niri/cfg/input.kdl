@@ -4,16 +4,28 @@
 input {
     keyboard {
         xkb {
-            layout "us" // Use the American keyboard layout
+            layout "us"
         }
-        numlock // Enable numlock on startup
+        numlock
     }
 
     touchpad {
-        tap // Enable tap-to-click
-        natural-scroll // Enable natural (macOS-style) scrolling
+        tap
+        natural-scroll
+        click-method "button-areas"
+        dwt
+        dwtp
+        scroll-method "two-finger"
+        tap-button-map "left-right-middle"
+        middle-emulation
+        accel-profile "adaptive"
     }
 
-    focus-follows-mouse // Automatically focus windows under the mouse pointer
-    workspace-auto-back-and-forth // Enable workspace back & forth switching
+    mouse {
+        accel-profile "flat"
+    }
+
+    focus-follows-mouse max-scroll-amount="90%"
+    warp-mouse-to-focus
+    workspace-auto-back-and-forth
 }
