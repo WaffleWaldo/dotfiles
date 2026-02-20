@@ -9,7 +9,7 @@ Inspired by [linuxmobile/shin](https://github.com/linuxmobile/shin).
 ```bash
 git clone git@github.com:wafflewaldo/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-stow env bash zsh fish niri noctalia alacritty ghostty foot kitty gtk-qt micro starship fastfetch yazi nvim nvim-lazy zellij
+stow env bash zsh fish niri noctalia alacritty ghostty foot kitty gtk-qt micro starship fastfetch yazi nvim nvim-lazy tmux
 ```
 
 ### Dependencies
@@ -18,7 +18,7 @@ stow env bash zsh fish niri noctalia alacritty ghostty foot kitty gtk-qt micro s
 paru -S --needed niri ghostty foot alacritty starship zoxide fzf bat atuin yazi \
   cliphist wl-clipboard swww apple-fonts ttf-nerd-fonts-symbols noto-fonts-emoji \
   bibata-cursor-theme whitesur-icon-theme spotify-launcher \
-  neovim zellij fnm uv cmake clang python-pip
+  neovim tmux fnm uv cmake clang python-pip
 flatpak install flathub org.nickvision.cavalier
 ```
 
@@ -43,7 +43,7 @@ flatpak install flathub org.nickvision.cavalier
 | `micro`      | `settings.json`                                        | `stow micro`        | `stow -D micro`       |
 | `nvim`       | `init.lua` (minimal, no plugins)                       | `stow nvim`         | `stow -D nvim`        |
 | `nvim-lazy`  | LazyVim IDE config (Python/TS/Svelte/C++)              | `stow nvim-lazy`    | `stow -D nvim-lazy`   |
-| `zellij`     | `config.kdl` + `layouts/code.kdl`                      | `stow zellij`       | `stow -D zellij`      |
+| `tmux`       | `tmux.conf` + `tmux-code` layout script                | `stow tmux`         | `stow -D tmux`        |
 
 ## Theming
 
