@@ -9,7 +9,7 @@ Inspired by [linuxmobile/shin](https://github.com/linuxmobile/shin).
 ```bash
 git clone git@github.com:wafflewaldo/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-stow env bash zsh fish niri noctalia alacritty ghostty foot kitty gtk-qt micro starship fastfetch yazi
+stow env bash zsh fish niri noctalia alacritty ghostty foot kitty gtk-qt micro starship fastfetch yazi nvim nvim-lazy zellij
 ```
 
 ### Dependencies
@@ -17,7 +17,8 @@ stow env bash zsh fish niri noctalia alacritty ghostty foot kitty gtk-qt micro s
 ```bash
 paru -S --needed niri ghostty foot alacritty starship zoxide fzf bat atuin yazi \
   cliphist wl-clipboard swww apple-fonts ttf-nerd-fonts-symbols noto-fonts-emoji \
-  bibata-cursor-theme whitesur-icon-theme spotify-launcher
+  bibata-cursor-theme whitesur-icon-theme spotify-launcher \
+  neovim zellij fnm uv cmake clang python-pip
 flatpak install flathub org.nickvision.cavalier
 ```
 
@@ -40,6 +41,9 @@ flatpak install flathub org.nickvision.cavalier
 | `yazi`       | `yazi.toml` + `theme.toml`                             | `stow yazi`         | `stow -D yazi`        |
 | `gtk-qt`     | GTK 3/4 settings, qt5ct, Kvantum                       | `stow gtk-qt`       | `stow -D gtk-qt`      |
 | `micro`      | `settings.json`                                        | `stow micro`        | `stow -D micro`       |
+| `nvim`       | `init.lua` (minimal, no plugins)                       | `stow nvim`         | `stow -D nvim`        |
+| `nvim-lazy`  | LazyVim IDE config (Python/TS/Svelte/C++)              | `stow nvim-lazy`    | `stow -D nvim-lazy`   |
+| `zellij`     | `config.kdl` + `layouts/code.kdl`                      | `stow zellij`       | `stow -D zellij`      |
 
 ## Theming
 
@@ -67,6 +71,22 @@ flatpak install flathub org.nickvision.cavalier
 | `Mod+W`              | Toggle tabbed display     |
 | `Print`              | Screenshot (screen)       |
 | `Mod+Shift+S`        | Screenshot (region)       |
+
+## Neovim configs
+
+Multiple configs via `NVIM_APPNAME`:
+
+| Command      | Config         | Description                          |
+|-------------|----------------|--------------------------------------|
+| `nvim`      | `~/.config/nvim` | Minimal baseline (no plugins)       |
+| `nvim-lazy` | `~/.config/nvim-lazy` | LazyVim IDE (full LSP/formatting) |
+
+Adding a new config (e.g., AstroNvim):
+```bash
+git clone --depth 1 https://github.com/AstroNvim/template ~/.config/nvim-astro
+# Add alias to fish: alias nvim-astro="NVIM_APPNAME=nvim-astro nvim"
+# Optionally stow it into dotfiles
+```
 
 ## Adding a new tool
 

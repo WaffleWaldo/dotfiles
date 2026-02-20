@@ -26,13 +26,24 @@ if command -q atuin
     atuin init fish | source
 end
 
+# ─── fnm (Fast Node Manager) ───
+if command -q fnm
+    fnm env --use-on-cd --shell fish | source
+end
+
+# ─── uv (Python package manager) ───
+if command -q uv
+    uv generate-shell-completion fish | source
+end
+
 # ─── Aliases ───
 alias cat="bat --paging=never"
 alias l="eza -lF --time-style=long-iso --icons"
 alias ll="eza -h --git --icons --color=auto --group-directories-first -s extension"
 alias tree="eza --tree --icons"
+alias nvim-lazy="NVIM_APPNAME=nvim-lazy nvim"
 alias cavalier="setsid flatpak run org.nickvision.cavalier &>/dev/null &"
-alias spotify="setsid spotify-launcher &>/dev/null &"
+alias spotify="setsid spotify-launcher &>/dev/null &; exit"
 
 # ─── Yazi file manager (cd on exit) ───
 function fm
