@@ -72,6 +72,8 @@ binds {
     Mod+Shift+CTRL+Down                 { move-column-to-monitor-down; }
     Mod+CTRL+K                          { focus-workspace-up; }
     Mod+CTRL+J                          { focus-workspace-down; }
+    Mod+CTRL+Shift+K                    { move-window-up; }
+    Mod+CTRL+Shift+J                    { move-window-down; }
 
     // ─── Workspace Switching ───
     Mod+WheelScrollDown                 cooldown-ms=150 { focus-workspace-down; }

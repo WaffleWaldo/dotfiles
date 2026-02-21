@@ -1,0 +1,7 @@
+inherits = "tokyonight_storm"
+
+"ui.background" = { bg = "" }
+"ui.statusline" = { bg = "" }
+"ui.statusline.inactive" = { bg = "" }
+"ui.bufferline" = { bg = "" }
+"ui.bufferline.background" = { bg = "" }

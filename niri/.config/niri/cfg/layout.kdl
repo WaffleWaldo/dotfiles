@@ -6,8 +6,8 @@
         background-color "transparent" // <- needed for noctalia-shell to set wallpaper
 
         focus-ring {
-            width 2
-            active-color "#b5c4ff"
+            width 3
+            active-color "#f38ba8"
             inactive-color "#45464f"
         }
 
