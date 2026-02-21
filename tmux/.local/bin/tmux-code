@@ -1,2 +1,3 @@
 #!/bin/bash
+tmux kill-session -t code 2>/dev/null
 tmux new-session -s code \; split-window -h -l 60% \; select-pane -t 0

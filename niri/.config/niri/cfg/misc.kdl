@@ -1,3 +1,9 @@
+workspace "一"
+workspace "二"
+workspace "三"
+workspace "四"
+workspace "五"
+
     prefer-no-csd
     screenshot-path "~/Pictures/Screenshots/Screenshot-from-%Y-%m-%d-%H-%M-%S.png"
 

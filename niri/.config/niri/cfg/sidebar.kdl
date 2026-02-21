@@ -1,0 +1,24 @@
+// ────────────── Sidebar (niri-sidebar) ──────────────
+// https://github.com/Vigintillionn/niri-sidebar
+// Comment out the include line in config.kdl to disable
+
+spawn-at-startup "~/.local/bin/niri-sidebar" "listen"
+
+binds {
+    // ─── Sidebar Controls ───
+    Mod+G           hotkey-overlay-title="Sidebar: Toggle Window"     { spawn "~/.local/bin/niri-sidebar" "toggle-window"; }
+    Mod+Shift+G     hotkey-overlay-title="Sidebar: Toggle Visibility" { spawn "~/.local/bin/niri-sidebar" "toggle-visibility"; }
+    Mod+CTRL+G      hotkey-overlay-title="Sidebar: Flip"              { spawn "~/.local/bin/niri-sidebar" "flip"; }
+    Mod+Alt+G       hotkey-overlay-title="Sidebar: Reorder"           { spawn "~/.local/bin/niri-sidebar" "reorder"; }
+
+    // ─── Sidebar Focus ───
+    Mod+Semicolon       hotkey-overlay-title="Sidebar: Focus Next"       { spawn "~/.local/bin/niri-sidebar" "focus"; }
+    Mod+Shift+Semicolon hotkey-overlay-title="Sidebar: Back to Tiling"   { focus-tiling; }
+}
+
+// Floating windows need a min-size so sidebar windows don't collapse
+window-rule {
+    match is-floating=true
+    min-width 100
+    min-height 100
+}
