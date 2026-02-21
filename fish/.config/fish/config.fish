@@ -6,7 +6,7 @@ source /usr/share/cachyos-fish-config/cachyos-config.fish
 #    # smth smth
 #end
 set -x BROWSER google-chrome
-set -gx EDITOR hx
+set -gx EDITOR helix
 
 export PATH="$HOME/.local/bin:$PATH"
 
@@ -42,6 +42,7 @@ alias cat="bat --paging=never"
 alias l="eza -lF --time-style=long-iso --icons"
 alias ll="eza -h --git --icons --color=auto --group-directories-first -s extension"
 alias tree="eza --tree --icons"
+alias hx="helix"
 alias cavalier="setsid flatpak run org.nickvision.cavalier &>/dev/null &"
 alias spotify="setsid spotify-launcher &>/dev/null &; exit"
 
