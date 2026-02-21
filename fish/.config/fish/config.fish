@@ -43,6 +43,10 @@ alias l="eza -lF --time-style=long-iso --icons"
 alias ll="eza -h --git --icons --color=auto --group-directories-first -s extension"
 alias tree="eza --tree --icons"
 alias hx="helix"
+alias finance-sync="~/code/personal/finance/finance-sync/venv/bin/python ~/code/personal/finance/finance-sync/scripts/sync.py"
+alias finance-link="~/code/personal/finance/finance-sync/venv/bin/python ~/code/personal/finance/finance-sync/scripts/link_account.py"
+alias finance-client-id="pass insert -f finance/plaid/client-id"
+alias finance-secret="pass insert -f finance/plaid/secret"
 alias cavalier="setsid flatpak run org.nickvision.cavalier &>/dev/null &"
 alias spotify="setsid spotify-launcher &>/dev/null &; exit"
 
@@ -56,3 +60,4 @@ function fm
     end
     rm -f $tmp
 end
+set -gx LEDGER_FILE /home/m31/code/personal/finance/finance-sync/data/journal/main.journal
