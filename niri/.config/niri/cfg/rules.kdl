@@ -104,6 +104,18 @@
         open-floating true
     }
 
+    // ─── Vesktop (Discord) transparency ───
+    window-rule {
+        match app-id="vesktop"
+        opacity 0.92
+    }
+
+    // ─── Obsidian transparency ───
+    window-rule {
+        match app-id="obsidian"
+        opacity 0.92
+    }
+
     // ─── Noctalia wallpaper layer ───
     layer-rule {
         match namespace="^noctalia-wallpaper*"

@@ -1,0 +1,79 @@
+/* ── Transparent Discord Theme (Medium ~60% opacity) ── */
+
+/* Main app background */
+.app-3xd6d0,
+.bg-1QIAus,
+.layers-OrUESM,
+.baseLayer-W6S_-e {
+    background: transparent !important;
+}
+
+/* Sidebar / server list */
+nav[aria-label="Servers sidebar"] {
+    background: rgba(30, 30, 46, 0.55) !important;
+}
+
+/* Channel sidebar */
+.sidebar-1tnWFu,
+.container-1NXEtd {
+    background: rgba(30, 30, 46, 0.50) !important;
+}
+
+/* Chat area */
+.chat-2ZfjoI,
+.chatContent-3KubbW {
+    background: rgba(30, 30, 46, 0.45) !important;
+}
+
+/* Members list */
+.membersWrap-3NR2eQ,
+.members-3WRCEx {
+    background: rgba(30, 30, 46, 0.50) !important;
+}
+
+/* Title bar */
+.titleBar-1it3bQ,
+.title-31SJ6t,
+.toolbar-3_r2xA {
+    background: transparent !important;
+}
+
+/* Message hover */
+.message-2CShn3:hover {
+    background: rgba(49, 50, 68, 0.40) !important;
+}
+
+/* Input area */
+.channelTextArea-1FufC0,
+.scrollableContainer-15eg7h {
+    background: rgba(30, 30, 46, 0.60) !important;
+}
+
+/* Popouts and modals */
+.layerContainer-2v_Sit .layer-86YKbF {
+    background: rgba(30, 30, 46, 0.80) !important;
+}
+
+/* User area at bottom of sidebar */
+.panels-3wFtMD {
+    background: rgba(24, 24, 37, 0.60) !important;
+}
+
+/* Search bar area */
+.searchBar-6Kv8R2 {
+    background: rgba(30, 30, 46, 0.50) !important;
+}
+
+/* General cleanup for nested backgrounds */
+[class*="container-"],
+[class*="wrapper-"],
+[class*="content-"] {
+    background-color: transparent !important;
+}
+
+/* Re-apply some opacity for readability on specific elements */
+.markup-eYLPri,
+.username-h_Y3Us,
+.timestamp-p1Df1m {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
