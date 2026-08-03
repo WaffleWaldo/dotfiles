@@ -268,10 +268,23 @@
         }
     },
     "desktopWidgets": {
-        "enabled": false,
+        "enabled": true,
         "gridSnap": false,
         "gridSnapScale": false,
-        "monitorWidgets": [],
+        "monitorWidgets": [
+            {
+                "name": "DP-3",
+                "widgets": [
+                    {
+                        "id": "plugin:coldwire-monitor",
+                        "x": 2880,
+                        "y": 1060,
+                        "showBackground": false,
+                        "roundedCorners": false
+                    }
+                ]
+            }
+        ],
         "overviewEnabled": true
     },
     "dock": {
@@ -612,7 +625,7 @@
     },
     "wallpaper": {
         "automationEnabled": false,
-        "directory": "/home/m31/Pictures/wallpapers",
+        "directory": "/home/m31/Pictures/wallpapers/coldwire",
         "enableMultiMonitorDirectories": false,
         "enabled": true,
         "favorites": [],

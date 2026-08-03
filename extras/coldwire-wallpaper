@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Re-roll the Coldwire terrain wallpaper. Usage: coldwire-wallpaper [seed]
+set -e
+DIR="$HOME/Pictures/wallpapers/coldwire"
+mkdir -p "$DIR"
+SEED="${1:-$((RANDOM * 32768 + RANDOM))}"
+python3 "$HOME/dotfiles/extras/coldwire-terrain.py" --seed "$SEED" --out "$DIR/coldwire-terrain-$SEED.png"
+ls -t "$DIR"/coldwire-terrain-*.png | tail -n +9 | xargs -r rm --
+qs -c noctalia-shell ipc call wallpaper random >/dev/null 2>&1 || true
+echo "seed $SEED"

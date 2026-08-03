@@ -1,11 +1,23 @@
 """Coldwire wallpaper: dot-matrix mountain terrain, white points on near-black.
 3440x1440, styled after the point-cloud mountain in Dev/Desktop Inspo."""
+import argparse
 import numpy as np
 from PIL import Image
 
+ap = argparse.ArgumentParser(description="Coldwire dot-matrix terrain wallpaper")
+ap.add_argument("--seed", type=int, default=31)
+ap.add_argument("--out", default="/home/m31/Pictures/wallpapers/coldwire/coldwire-terrain-31.png")
+args = ap.parse_args()
+
 W, H = 3440, 1440
 BG = 5  # #050505
-rng = np.random.default_rng(31)
+rng = np.random.default_rng(args.seed)
+
+# seed-driven composition: peak position/width vary per roll
+peak_x = rng.uniform(0.30, 0.62)
+peak_w = rng.uniform(0.16, 0.26)
+peak2_x = (peak_x + rng.uniform(0.28, 0.45)) % 1.0
+peak2_amp = rng.uniform(0.3, 0.6)
 
 
 def value_noise(nx, nz, freq, rng):
@@ -49,8 +61,8 @@ ridge = 1.0 - np.abs(fbm(xx, zz, octaves=5, base_freq=2.0) * 2.0 - 1.0)
 h = 0.45 * h + 0.75 * ridge ** 2.2
 
 # mountain mass envelope: main peak left-of-center, mid-depth
-env = (np.exp(-(((xx - 0.38) / 0.20) ** 2) - (((zz - 0.45) / 0.38) ** 2)) * 1.15
-       + np.exp(-(((xx - 0.78) / 0.16) ** 2) - (((zz - 0.30) / 0.30) ** 2)) * 0.45
+env = (np.exp(-(((xx - peak_x) / peak_w) ** 2) - (((zz - 0.45) / 0.38) ** 2)) * 1.15
+       + np.exp(-(((xx - peak2_x) / 0.16) ** 2) - (((zz - 0.30) / 0.30) ** 2)) * peak2_amp
        + 0.06)
 h = h * env
 h = np.clip(h - 0.05, 0, None) ** 1.25
@@ -87,6 +99,5 @@ for gy in np.linspace(horizon * 0.35, horizon * 0.96, 5):
 img = np.clip(canvas, 0, 1.6)
 img = (img / 1.6) ** 0.60                            # gamma lift for thin dots
 px = (BG + img * (242 - BG)).astype(np.uint8)        # up to fg0-ish white
-Image.fromarray(px, mode="L").convert("RGB").save(
-    "/home/m31/Pictures/wallpapers/coldwire-terrain-01.png", optimize=True)
-print("saved")
+Image.fromarray(px, mode="L").convert("RGB").save(args.out, optimize=True)
+print("saved", args.out)

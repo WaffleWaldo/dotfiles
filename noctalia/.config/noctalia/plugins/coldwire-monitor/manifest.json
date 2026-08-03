@@ -1,0 +1,18 @@
+{
+  "id": "coldwire-monitor",
+  "name": "Coldwire Monitor",
+  "version": "1.0.0",
+  "minNoctaliaVersion": "3.6.0",
+  "author": "m31",
+  "license": "MIT",
+  "repository": "local",
+  "description": "Data-brutalist ambient system monitor: CPU/MEM/NET sparklines, wireframe mesh, decode animations. Part of the Coldwire desktop theme.",
+  "tags": ["monitor", "desktop-widget", "coldwire"],
+  "entryPoints": {
+    "desktopWidget": "DesktopWidget.qml"
+  },
+  "metadata": {
+    "showBackground": false,
+    "roundedCorners": false
+  }
+}
