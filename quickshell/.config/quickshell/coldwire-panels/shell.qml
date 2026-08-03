@@ -402,6 +402,14 @@ ShellRoot {
               var g = JSON.parse(text);
               net.nodes = g.nodes;
               net.links = g.links;
+              // adjacency map: O(1) neighbor checks in the paint loop
+              var nb = {};
+              for (var li = 0; li < g.links.length; li++) {
+                var a = g.links[li][0], b = g.links[li][1];
+                (nb[a] = nb[a] || {})[b] = true;
+                (nb[b] = nb[b] || {})[a] = true;
+              }
+              net.nbrs = nb;
               netMeta.text = "NOTES " + g.nodes.length + " // LINKS " + g.links.length;
             } catch (e) {
               netMeta.text = "NO VAULT DATA";
@@ -429,6 +437,8 @@ ShellRoot {
         property int hoverIdx: -1
         property int dragIdx: -1
         property bool dragged: false
+        property var nbrs: ({})
+        renderStrategy: Canvas.Cooperative
 
         Timer {
           interval: 66
@@ -479,8 +489,13 @@ ShellRoot {
               net.nodes[net.dragIdx].x = Math.max(0.02, Math.min(0.98, mouse.x / net.width));
               net.nodes[net.dragIdx].y = Math.max(0.02, Math.min(0.98, mouse.y / net.height));
               net.dragged = true;
+              net.requestPaint();   // repaint at mouse rate, not ambient tick rate
             } else {
-              net.hoverIdx = net.nodeAt(mouse.x, mouse.y);
+              var h = net.nodeAt(mouse.x, mouse.y);
+              if (h !== net.hoverIdx) {
+                net.hoverIdx = h;
+                net.requestPaint();
+              }
             }
           }
           onPressed: mouse => {
@@ -537,28 +552,15 @@ ShellRoot {
             var n = nodes[i];
             var sz = 2 + Math.min(n.d * 0.4, 5);
             var isFocus = i === focusIdx;
-            var neighbor = false;
-            if (focusIdx >= 0 && !isFocus) {
-              for (var l2 = 0; l2 < links.length; l2++) {
-                if ((links[l2][0] === focusIdx && links[l2][1] === i) ||
-                    (links[l2][1] === focusIdx && links[l2][0] === i)) {
-                  neighbor = true;
-                  break;
-                }
-              }
-            }
+            var neighbor = focusIdx >= 0 && !isFocus && nbrs[focusIdx] !== undefined && nbrs[focusIdx][i] === true;
             var c = n.a ? root.cAmber : (n.d >= 4 ? root.cBright : root.cDim);
             var alpha = focusIdx >= 0 && !isFocus && !neighbor ? 0.30 : (n.a ? 1 : 0.85);
             ctx.fillStyle = Qt.rgba(c.r, c.g, c.b, alpha);
-            ctx.beginPath();
-            ctx.arc(pts[i][0], pts[i][1], sz / 2, 0, 6.29);
-            ctx.fill();
+            ctx.fillRect(pts[i][0] - sz / 2, pts[i][1] - sz / 2, sz, sz);
             if (isFocus) {
               ctx.strokeStyle = Qt.rgba(root.cAmber.r, root.cAmber.g, root.cAmber.b, 0.9);
               ctx.lineWidth = 1;
-              ctx.beginPath();
-              ctx.arc(pts[i][0], pts[i][1], sz / 2 + 4, 0, 6.29);
-              ctx.stroke();
+              ctx.strokeRect(pts[i][0] - sz / 2 - 4, pts[i][1] - sz / 2 - 4, sz + 8, sz + 8);
             }
             if (isFocus || neighbor || (focusIdx < 0 && n.a)) {
               ctx.fillStyle = isFocus
@@ -599,12 +601,14 @@ ShellRoot {
         id: wave
         anchors.fill: parent
         anchors.topMargin: 30
-        anchors.bottomMargin: 10
-        property var bars: []
-        property var peaks: []
-        property real idleT: 0
+        anchors.bottomMargin: 8
+        renderStrategy: Canvas.Cooperative
+        property real t: 0
+        property var spec: []          // smoothed spectrum 0..1 (64 bins)
         property real lastSignal: 0
         readonly property bool live: lastSignal > 0
+        readonly property int rows: 34
+        readonly property int cols: 110
 
         Process {
           id: cavaProc
@@ -615,79 +619,79 @@ ShellRoot {
               var vals = line.split(";").filter(s => s.length).map(Number);
               if (!vals.length)
                 return;
-              var mx = Math.max.apply(null, vals);
-              if (mx > 2) {
-                wave.lastSignal = 30;   // ~3s of live hold
-                wave.bars = vals;
-                wave.requestPaint();
-              } else if (wave.lastSignal > 0) {
-                wave.lastSignal -= 0.35;
-                wave.bars = vals;
-                wave.requestPaint();
+              if (wave.spec.length !== vals.length)
+                wave.spec = new Array(vals.length).fill(0);
+              var mx = 0;
+              for (var i = 0; i < vals.length; i++) {
+                var v = Math.min(vals[i], 100) / 100;
+                // fast attack, slow release — the sea swallows sound slowly
+                wave.spec[i] = v > wave.spec[i] ? v : wave.spec[i] * 0.90;
+                if (vals[i] > mx)
+                  mx = vals[i];
               }
-              // fully idle: the synth timer owns the bars
+              if (mx > 2)
+                wave.lastSignal = 30;
+              else if (wave.lastSignal > 0)
+                wave.lastSignal -= 0.35;
             }
           }
         }
 
         Timer {
-          // idle synth + peak decay driver
-          interval: 50
+          // ~25fps ocean
+          interval: 40
           running: true
           repeat: true
           onTriggered: {
-            wave.idleT += 0.09;
-            if (!wave.live) {
-              var n = 64;
-              var vals = [];
-              for (var i = 0; i < n; i++) {
-                var envelope = Math.exp(-Math.pow((i - n / 2) / (n / 2.6), 2));
-                var v = 4 + 7 * envelope * Math.abs(Math.sin(wave.idleT * 0.5 + i * 0.33))
-                        + 2.5 * Math.abs(Math.sin(wave.idleT * 1.7 + i * 1.1))
-                        + Math.random() * 1.6;
-                vals.push(v);
-              }
-              wave.bars = vals;
-              wave.requestPaint();
-            }
+            wave.t += 0.035;
+            wave.requestPaint();
           }
         }
 
         onPaint: {
           var ctx = getContext("2d");
           ctx.reset();
-          if (!bars.length)
-            return;
-          var n = bars.length;
-          var cy = height / 2;
-          var bw = width / n;
-          // center hairline
-          ctx.strokeStyle = Qt.rgba(root.cLine.r, root.cLine.g, root.cLine.b, 0.5);
-          ctx.setLineDash([1, 4]);
-          ctx.beginPath();
-          ctx.moveTo(0, cy + 0.5);
-          ctx.lineTo(width, cy + 0.5);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          if (peaks.length !== n)
-            peaks = new Array(n).fill(0);
-          for (var i = 0; i < n; i++) {
-            var v = Math.min(bars[i], 100) / 100;
-            var h = Math.max(v * (height * 0.46), 1);
-            peaks[i] = Math.max(peaks[i] - height * 0.006, h);
-            var x = i * bw + bw * 0.5;
-            var col = live ? root.cInk : root.cDim;
-            ctx.strokeStyle = Qt.rgba(col.r, col.g, col.b, live ? 0.9 : 0.55);
-            ctx.lineWidth = Math.max(bw * 0.28, 1);
-            ctx.beginPath();
-            ctx.moveTo(x, cy - h);
-            ctx.lineTo(x, cy + h);
-            ctx.stroke();
-            // amber peak caps
-            ctx.fillStyle = Qt.rgba(root.cAmber.r, root.cAmber.g, root.cAmber.b, live ? 0.9 : 0.45);
-            ctx.fillRect(x - 1, cy - peaks[i] - 2, 2, 2);
-            ctx.fillRect(x - 1, cy + peaks[i], 2, 2);
+          var w = width, h = height;
+          var horizon = h * 0.16;
+          var nSpec = spec.length || 64;
+          var amberPts = [];
+          ctx.fillStyle = Qt.rgba(root.cInk.r, root.cInk.g, root.cInk.b, 1);
+          for (var r = 0; r < rows; r++) {
+            var z = r / (rows - 1);                       // 0 far, 1 near
+            var ybase = horizon + Math.pow(z, 1.5) * h * 0.80;
+            var spread = 0.60 + 0.50 * z;
+            var waveLift = 12 + 60 * z;
+            var audioLift = 16 + 130 * z;
+            var rowGlow = 0.22 + 0.68 * Math.pow(z, 0.9);
+            var sz = z < 0.35 ? 1 : 2;
+            for (var c = 0; c < cols; c++) {
+              var x01 = c / (cols - 1);
+              // deterministic swell — three traveling waves, no jitter
+              var swell = 0.33 * Math.sin(x01 * 7.3 + t * 0.9 + z * 3.1)
+                        + 0.22 * Math.sin(x01 * 13.7 - t * 1.3 + z * 1.7)
+                        + 0.12 * Math.sin(x01 * 23.0 + t * 2.0 - z * 4.2);
+              var hgt = (swell + 0.67) / 1.34;            // 0..1
+              // audio ridge: bass at center, treble at edges
+              var a = 0;
+              if (spec.length) {
+                var fi = Math.min(nSpec - 1, Math.round(Math.abs(x01 - 0.5) * 2 * (nSpec - 1)));
+                a = spec[fi];
+              }
+              var sx = (x01 - 0.5) * spread * w * 1.30 + w / 2;
+              var sy = ybase - hgt * waveLift - a * a * audioLift;
+              var bright = rowGlow * (0.30 + 0.55 * hgt + 0.9 * a);
+              ctx.globalAlpha = Math.min(bright, 1);
+              ctx.fillRect(sx, sy, sz, sz);
+              if (a > 0.6 && z > 0.3)
+                amberPts.push([sx, sy - 2, sz]);
+            }
           }
+          // amber crests where the audio breaks the surface
+          ctx.globalAlpha = 0.95;
+          ctx.fillStyle = Qt.rgba(root.cAmber.r, root.cAmber.g, root.cAmber.b, 1);
+          for (var i = 0; i < amberPts.length; i++)
+            ctx.fillRect(amberPts[i][0], amberPts[i][1], amberPts[i][2], amberPts[i][2]);
+          ctx.globalAlpha = 1;
         }
       }
     }
