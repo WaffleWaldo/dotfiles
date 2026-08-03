@@ -1,8 +1,6 @@
 [colors-dark]
-cursor=050505 ffb000
-background=050505
 foreground=c8c8c8
-
+background=050505
 regular0=111111
 regular1=ff3b30
 regular2=b8b8b8
@@ -11,7 +9,6 @@ regular4=f2f2f0
 regular5=8a8a8a
 regular6=c8c8c8
 regular7=c8c8c8
-
 bright0=555555
 bright1=ff6b5e
 bright2=f2f2f0
@@ -20,6 +17,6 @@ bright4=ffffff
 bright5=a6a6a6
 bright6=e6e6e6
 bright7=f2f2f0
-
 selection-foreground=050505
 selection-background=f2f2f0
+cursor=050505 ffb000

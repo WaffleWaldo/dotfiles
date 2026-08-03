@@ -9,7 +9,7 @@ workspace "五"
 
     cursor {
         xcursor-size 20
-        xcursor-theme "Bibata-Original-Ice"
+        xcursor-theme "Bibata-Original-Amber"
     }
 
     overview {

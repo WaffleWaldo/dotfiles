@@ -1,0 +1,19 @@
+/* Coldwire structural overrides — colors come from noctalia.css (generated
+   from the Coldwire scheme by noctalia's gtk template) */
+@import url("noctalia.css");
+
+* {
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+/* radios keep their circle so they don't read as broken checkboxes */
+radio {
+  border-radius: 9999px;
+}
+
+/* popovers lose their shadow above — give them a hairline instead */
+popover > contents {
+  border: 1px solid @borders;
+}

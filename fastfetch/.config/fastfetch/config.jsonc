@@ -13,7 +13,7 @@
         "recache": true
     },
     "display": {
-        "separator": ": ",
+        "separator": " // ",
         "size": {
             "binaryPrefix": "iec"
         },

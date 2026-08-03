@@ -564,6 +564,34 @@
             {
                 "enabled": true,
                 "id": "alacritty"
+            },
+            {
+                "enabled": true,
+                "id": "foot"
+            },
+            {
+                "enabled": true,
+                "id": "ghostty"
+            },
+            {
+                "enabled": true,
+                "id": "kitty"
+            },
+            {
+                "enabled": true,
+                "id": "gtk"
+            },
+            {
+                "enabled": true,
+                "id": "qt"
+            },
+            {
+                "enabled": true,
+                "id": "cava"
+            },
+            {
+                "enabled": true,
+                "id": "btop"
             }
         ],
         "enableUserTheming": false

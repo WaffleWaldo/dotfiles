@@ -1,0 +1,17 @@
+/* Coldwire structural overrides — colors come from noctalia.css (generated
+   from the Coldwire scheme by noctalia's gtk template) */
+@import url("noctalia.css");
+
+* {
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+radio {
+  border-radius: 9999px;
+}
+
+popover.background {
+  border: 1px solid @borders;
+}
