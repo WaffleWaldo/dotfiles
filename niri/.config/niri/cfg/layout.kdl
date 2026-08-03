@@ -5,13 +5,13 @@
 
         background-color "transparent" // <- needed for noctalia-shell to set wallpaper
 
+        // ring off: the 1px border below is the whole focus indicator —
+        // a single amber hairline reads clearly against the mono field
         focus-ring {
-            width 2
-            active-color "#FFB000"
-            inactive-color "#333333"
+            off
         }
 
-        // 1px hairline on EVERY window (focus-ring only wraps the focused one) —
+        // 1px hairline on EVERY window (amber = focused, gray = not) —
         // the "every panel outlined" look from the inspo
         border {
             on

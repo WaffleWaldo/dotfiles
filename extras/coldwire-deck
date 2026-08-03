@@ -87,7 +87,7 @@ park_right() { # walk a window's column to the far right
 # focus it to scroll the deck and reveal it)
 if [ -n "$NET" ]; then
   park_right "$NET"
-  msg set-column-width "1300"
+  msg set-column-width "1302"
 fi
 
 # 2. stack the rail: clock first, mesh + stats consumed into its column
@@ -113,12 +113,12 @@ print(next(w['layout']['pos_in_scrolling_layout'][0] for w in ws if w['id']==$ST
 done
 
 # rail geometry
-msg focus-window --id "$CLOCK"; msg set-column-width "560"; msg set-window-height "240"
-msg focus-window --id "$MESH";  msg set-window-height "560"
+msg focus-window --id "$CLOCK"; msg set-column-width "562"; msg set-window-height "271"
+msg focus-window --id "$MESH";  msg set-window-height "562"
 
 # 3. terminals — center column: two stacked fish terminals, half height each
 MAIN=$(new_foot_id foot -T coldwire-main fish)
-[ -n "$MAIN" ] && { place "$MAIN"; msg focus-window --id "$MAIN"; msg set-column-width "1500"; }
+[ -n "$MAIN" ] && { place "$MAIN"; msg focus-window --id "$MAIN"; msg set-column-width "1158"; }
 # audio tap joins the main column (bottom half)
 if [ -n "$WAVE" ] && [ -n "$MAIN" ]; then
   msg focus-window --id "$WAVE"
@@ -128,11 +128,10 @@ if [ -n "$WAVE" ] && [ -n "$MAIN" ]; then
     col=$(colof "$WAVE")
     [ "$col" -le "$maincol" ] && break
   done
-  msg reset-window-height
-  msg focus-window --id "$MAIN"; msg reset-window-height
+  msg focus-window --id "$MAIN"; msg set-window-height "833"
 fi
 BTOP=$(new_foot_id foot -T coldwire-btop btop)
-[ -n "$BTOP" ] && { place "$BTOP"; msg focus-window --id "$BTOP"; msg set-column-width "1300"; }
+[ -n "$BTOP" ] && { place "$BTOP"; msg focus-window --id "$BTOP"; msg set-column-width "1301"; }
 
 # 4. align the strip flush left (rail visible), then land on the main terminal
 msg focus-window --id "$CLOCK"
