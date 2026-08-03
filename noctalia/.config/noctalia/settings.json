@@ -17,8 +17,7 @@
         "iconMode": "tabler",
         "ignoreMouseInput": false,
         "overviewLayer": false,
-        "pinnedApps": [
-        ],
+        "pinnedApps": [],
         "position": "center",
         "screenshotAnnotationTool": "",
         "showCategories": true,
@@ -28,8 +27,7 @@
         "viewMode": "list"
     },
     "audio": {
-        "mprisBlacklist": [
-        ],
+        "mprisBlacklist": [],
         "preferredPlayer": "",
         "spectrumFrameRate": 30,
         "spectrumMirrored": true,
@@ -51,7 +49,7 @@
         "displayMode": "always_visible",
         "enableExclusionZoneInset": true,
         "fontScale": 1,
-        "frameRadius": 16,
+        "frameRadius": 0,
         "frameThickness": 6,
         "hideOnOverview": false,
         "marginHorizontal": 8,
@@ -59,18 +57,16 @@
         "middleClickAction": "none",
         "middleClickCommand": "",
         "middleClickFollowMouse": false,
-        "monitors": [
-        ],
+        "monitors": [],
         "mouseWheelAction": "none",
         "mouseWheelWrap": true,
-        "outerCorners": true,
+        "outerCorners": false,
         "position": "top",
         "reverseScroll": false,
         "rightClickAction": "controlCenter",
         "rightClickCommand": "",
         "rightClickFollowMouse": true,
-        "screenOverrides": [
-        ],
+        "screenOverrides": [],
         "showCapsule": true,
         "showOnWorkspaceSwitch": true,
         "showOutline": false,
@@ -135,15 +131,13 @@
             ],
             "right": [
                 {
-                    "blacklist": [
-                    ],
+                    "blacklist": [],
                     "chevronColor": "none",
                     "colorizeIcons": false,
                     "drawerEnabled": true,
                     "hidePassive": false,
                     "id": "Tray",
-                    "pinned": [
-                    ]
+                    "pinned": []
                 },
                 {
                     "hideWhenZero": false,
@@ -181,8 +175,7 @@
         }
     },
     "brightness": {
-        "backlightDeviceMappings": [
-        ],
+        "backlightDeviceMappings": [],
         "brightnessStep": 5,
         "enableDdcSupport": false,
         "enforceMinimum": true
@@ -209,10 +202,10 @@
         "manualSunrise": "06:30",
         "manualSunset": "18:30",
         "monitorForColors": "",
-        "predefinedScheme": "Noctalia (default)",
+        "predefinedScheme": "Coldwire",
         "schedulingMode": "off",
         "syncGsettings": true,
-        "useWallpaperColors": true
+        "useWallpaperColors": false
     },
     "controlCenter": {
         "cards": [
@@ -278,8 +271,7 @@
         "enabled": false,
         "gridSnap": false,
         "gridSnapScale": false,
-        "monitorWidgets": [
-        ],
+        "monitorWidgets": [],
         "overviewEnabled": true
     },
     "dock": {
@@ -289,7 +281,7 @@
         "deadOpacity": 0.55,
         "displayMode": "auto_hide",
         "dockType": "floating",
-        "enabled": true,
+        "enabled": false,
         "floatingRatio": 1.5,
         "groupApps": false,
         "groupClickAction": "cycle",
@@ -303,11 +295,9 @@
         "launcherIconColor": "none",
         "launcherPosition": "end",
         "launcherUseDistroLogo": false,
-        "monitors": [
-        ],
+        "monitors": [],
         "onlySameOutput": true,
-        "pinnedApps": [
-        ],
+        "pinnedApps": [],
         "pinnedStatic": false,
         "position": "bottom",
         "showDockIndicator": false,
@@ -322,17 +312,17 @@
         "animationSpeed": 1,
         "autoStartAuth": false,
         "avatarImage": "/home/m31/.face",
-        "boxRadiusRatio": 1,
+        "boxRadiusRatio": 0,
         "clockFormat": "hh\\nmm",
         "clockStyle": "custom",
         "compactLockScreen": false,
         "dimmerOpacity": 0,
-        "enableBlurBehind": true,
+        "enableBlurBehind": false,
         "enableLockScreenCountdown": true,
         "enableLockScreenMediaControls": false,
         "enableShadows": false,
         "forceBlackScreenCorners": true,
-        "iRadiusRatio": 1,
+        "iRadiusRatio": 0,
         "keybinds": {
             "keyDown": [
                 "Down"
@@ -362,14 +352,13 @@
         "lockScreenAnimations": false,
         "lockScreenBlur": 0,
         "lockScreenCountdownDuration": 10000,
-        "lockScreenMonitors": [
-        ],
+        "lockScreenMonitors": [],
         "lockScreenTint": 0,
         "passwordChars": false,
-        "radiusRatio": 1,
+        "radiusRatio": 0,
         "reverseScroll": false,
         "scaleRatio": 1,
-        "screenRadiusRatio": 0.99,
+        "screenRadiusRatio": 0,
         "shadowDirection": "bottom_right",
         "shadowOffsetX": 2,
         "shadowOffsetY": 3,
@@ -457,8 +446,7 @@
         "enabled": true,
         "location": "top_right",
         "lowUrgencyDuration": 3,
-        "monitors": [
-        ],
+        "monitors": [],
         "normalUrgencyDuration": 8,
         "overlayLayer": true,
         "respectExpireTimeout": false,
@@ -487,8 +475,7 @@
             2
         ],
         "location": "top_right",
-        "monitors": [
-        ],
+        "monitors": [],
         "overlayLayer": true
     },
     "plugins": {
@@ -600,14 +587,12 @@
         "directory": "/home/m31/Pictures/wallpapers",
         "enableMultiMonitorDirectories": false,
         "enabled": true,
-        "favorites": [
-        ],
-        "fillColor": "#000000",
+        "favorites": [],
+        "fillColor": "#050505",
         "fillMode": "crop",
         "hideWallpaperFilenames": false,
         "linkLightAndDarkWallpapers": true,
-        "monitorDirectories": [
-        ],
+        "monitorDirectories": [],
         "overviewBlur": 0.4,
         "overviewEnabled": false,
         "overviewTint": 0.6,
@@ -618,15 +603,10 @@
         "skipStartupTransition": false,
         "solidColor": "#1a1a2e",
         "sortOrder": "name",
-        "transitionDuration": 1500,
+        "transitionDuration": 300,
         "transitionEdgeSmoothness": 0.05,
         "transitionType": [
-            "fade",
-            "disc",
-            "stripes",
-            "wipe",
-            "pixelate",
-            "honeycomb"
+            "fade"
         ],
         "useOriginalImages": false,
         "useSolidColor": false,

@@ -21,32 +21,10 @@ general = "Alacritty"
 history = 10000
 multiplier = 3
 
+# Colors come from the active noctalia scheme (Coldwire) via themes/noctalia.toml —
+# see the import in [general]. No palette overrides here or they'd win over the theme.
 [colors]
 draw_bold_text_with_bright_colors = true
-
-[colors.primary]
-background = "#000000"      # transparent; compositor supplies bg
-foreground = "#e0e4f0"
-
-[colors.normal]
-black   = "0x050814"
-red     = "0xe1464f"
-green   = "0x19c4b8"
-yellow  = "0xf3b451"
-blue    = "0x39435c"
-magenta = "0xb382c5"
-cyan    = "0x19c4b8"
-white   = "0xe0e4f0"
-
-[colors.bright]
-black   = "0x0a1020"
-red     = "0xff5a65"
-green   = "0x27d9cb"
-yellow  = "0xffc46a"
-blue    = "0x4b5b7a"
-magenta = "0xc594d8"
-cyan    = "0x27d9cb"
-white   = "0xf5f7ff"
 
 [font]
 size = 12
