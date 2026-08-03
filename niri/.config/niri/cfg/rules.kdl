@@ -1,32 +1,23 @@
     // ─── Default window rule ───
     window-rule {
-        geometry-corner-radius 12
+        geometry-corner-radius 0
         clip-to-geometry true
         draw-border-with-background false
     }
 
-    // ─── Floating windows get shadows ───
-    window-rule {
-        match is-floating=true
-        shadow {}
-    }
-
-    // ─── Screencast target highlight ───
+    // ─── Screencast target highlight (red = recording, per Coldwire semantics) ───
     window-rule {
         match is-window-cast-target=true
         focus-ring {
-            active-color "#f38ba8"
-            inactive-color "#7d0d2d"
+            active-color "#FF3B30"
+            inactive-color "#7A1D17"
         }
         border {
-            inactive-color "#7d0d2d"
-        }
-        shadow {
-            color "#7d0d2d70"
+            inactive-color "#7A1D17"
         }
         tab-indicator {
-            active-color "#f38ba8"
-            inactive-color "#7d0d2d"
+            active-color "#FF3B30"
+            inactive-color "#7A1D17"
         }
     }
 

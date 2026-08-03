@@ -8,11 +8,16 @@
         focus-ring {
             width 2
             active-color "#FFB000"
-            inactive-color "#1A1A1A"
+            inactive-color "#333333"
         }
 
+        // 1px hairline on EVERY window (focus-ring only wraps the focused one) —
+        // the "every panel outlined" look from the inspo
         border {
-            off
+            on
+            width 1
+            active-color "#FFB000"
+            inactive-color "#333333"
         }
 
         shadow {
