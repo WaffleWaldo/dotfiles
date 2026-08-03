@@ -87,9 +87,27 @@ done
 msg focus-window --id "$CLOCK"; msg set-column-width "560"; msg set-window-height "240"
 msg focus-window --id "$MESH";  msg set-window-height "560"
 
-# 3. terminals
+# 3. terminals — center column: two stacked fish terminals, half height each
 MAIN=$(new_foot_id foot -T coldwire-main fish)
 [ -n "$MAIN" ] && { place "$MAIN"; msg focus-window --id "$MAIN"; msg set-column-width "1500"; }
+AUX=$(new_foot_id foot -T coldwire-aux fish)
+if [ -n "$AUX" ] && [ -n "$MAIN" ]; then
+  place "$AUX"; msg focus-window --id "$AUX"
+  maincol=$(niri msg --json windows | python3 -c "
+import json,sys
+ws = json.load(sys.stdin)
+print(next(w['layout']['pos_in_scrolling_layout'][0] for w in ws if w['id']==$MAIN))")
+  while :; do
+    msg consume-or-expel-window-left
+    col=$(niri msg --json windows | python3 -c "
+import json,sys
+ws = json.load(sys.stdin)
+print(next(w['layout']['pos_in_scrolling_layout'][0] for w in ws if w['id']==$AUX))")
+    [ "$col" -le "$maincol" ] && break
+  done
+  msg reset-window-height
+  msg focus-window --id "$MAIN"; msg reset-window-height
+fi
 BTOP=$(new_foot_id foot -T coldwire-btop btop)
 [ -n "$BTOP" ] && { place "$BTOP"; msg focus-window --id "$BTOP"; msg set-column-width "1300"; }
 
