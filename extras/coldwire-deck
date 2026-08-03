@@ -35,9 +35,13 @@ new_foot_id() { # spawn "$@" and echo the id of the new foot window
   return 1
 }
 
+READY_FLAG="${XDG_RUNTIME_DIR:-/tmp}/coldwire-deck-ready"
+rm -f "$READY_FLAG"
+
 if [ "${1:-}" = "--boot" ]; then
-  # session start: wait for niri IPC and give the shell a moment
+  # session start: wait for niri IPC, raise the boot overlay, then build under it
   for _ in $(seq 1 50); do niri msg version >/dev/null 2>&1 && break; sleep 0.2; done
+  setsid -f qs -c coldwire-boot >/dev/null 2>&1
   sleep 2
 fi
 
@@ -136,4 +140,7 @@ BTOP=$(new_foot_id foot -T coldwire-btop btop)
 # 4. align the strip flush left (rail visible), then land on the main terminal
 msg focus-window --id "$CLOCK"
 [ -n "${MAIN:-}" ] && msg focus-window --id "$MAIN"
+
+# signal the boot overlay that the deck is composed
+touch "$READY_FLAG"
 exit 0
