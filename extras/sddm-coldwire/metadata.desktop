@@ -1,0 +1,10 @@
+[SddmGreeterTheme]
+Name=Coldwire
+Description=Data-brutalist login for the Coldwire desktop theme.
+Type=sddm-theme
+Author=m31
+Version=1.0
+MainScript=Main.qml
+ConfigFile=theme.conf
+Theme-Id=coldwire
+Theme-API=2.0
