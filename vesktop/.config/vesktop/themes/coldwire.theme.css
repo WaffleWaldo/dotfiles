@@ -1,0 +1,183 @@
+/**
+ * @name Coldwire
+ * @description Data-brutalist mono theme for Discord. Amber = attention, red = alarm.
+ * @author m31
+ * @version 1.0.0
+ */
+
+/* ── palette over Discord's semantic variables ─────────────────── */
+.theme-dark,
+.theme-darker,
+.theme-midnight {
+  /* legacy variable family */
+  --background-primary: #0a0a0a;
+  --background-secondary: #0a0a0a;
+  --background-secondary-alt: #111111;
+  --background-tertiary: #050505;
+  --background-accent: #1a1a1a;
+  --background-floating: #0a0a0a;
+  --background-nested-floating: #0a0a0a;
+  --background-modifier-hover: rgba(242, 242, 240, 0.05);
+  --background-modifier-active: rgba(242, 242, 240, 0.08);
+  --background-modifier-selected: rgba(242, 242, 240, 0.09);
+  --background-modifier-accent: #333333;
+  --background-message-hover: rgba(242, 242, 240, 0.03);
+  --channeltextarea-background: #111111;
+  --activity-card-background: #111111;
+  --deprecated-card-bg: #111111;
+
+  --text-normal: #c8c8c8;
+  --text-muted: #8a8a8a;
+  --text-faint: #555555;
+  --text-link: #ffb000;
+  --text-positive: #b8b8b8;
+  --text-warning: #ffb000;
+  --text-danger: #ff3b30;
+  --header-primary: #f2f2f0;
+  --header-secondary: #8a8a8a;
+  --channels-default: #8a8a8a;
+  --interactive-normal: #8a8a8a;
+  --interactive-hover: #c8c8c8;
+  --interactive-active: #f2f2f0;
+  --interactive-muted: #555555;
+
+  --scrollbar-thin-thumb: #333333;
+  --scrollbar-auto-thumb: #333333;
+  --scrollbar-auto-track: transparent;
+  --scrollbar-thin-track: transparent;
+
+  /* visual-refresh variable family */
+  --background-base-lowest: #050505;
+  --background-base-lower: #0a0a0a;
+  --background-base-low: #0a0a0a;
+  --background-surface-high: #111111;
+  --background-surface-higher: #141414;
+  --background-surface-highest: #1a1a1a;
+  --border-faint: #111111;
+  --border-subtle: #1a1a1a;
+  --border-strong: #333333;
+  --text-default: #c8c8c8;
+  --text-secondary: #8a8a8a;
+  --text-tertiary: #555555;
+  --chat-background-default: #0a0a0a;
+  --channel-text-area-background: #111111;
+
+  /* design-system token family (2025+ builds) */
+  --bg-base-primary: #0a0a0a;
+  --bg-base-secondary: #0a0a0a;
+  --bg-base-tertiary: #050505;
+  --bg-surface-raised: #111111;
+  --bg-surface-overlay: #0a0a0a;
+  --bg-mod-faint: rgba(242, 242, 240, 0.04);
+  --bg-mod-subtle: rgba(242, 242, 240, 0.07);
+  --bg-mod-strong: rgba(242, 242, 240, 0.1);
+  --bg-brand: #ffb000;
+  --text-brand: #ffb000;
+  --text-feedback-critical: #ff3b30;
+  --border-container: #1a1a1a;
+
+  /* accent: amber attention */
+  --brand-260: #ffc94d;
+  --brand-360: #ffb000;
+  --brand-500: #ffb000;
+  --brand-560: #ffb000;
+  --brand-600: #cc8d00;
+  --brand-experiment: #ffb000;
+  --mention-foreground: #ffb000;
+  --mention-background: rgba(255, 176, 0, 0.12);
+  --info-warning-foreground: #ffb000;
+  --status-danger: #ff3b30;
+  --button-danger-background: #ff3b30;
+  --focus-primary: #ffb000;
+}
+
+/* ── mono type ── */
+.theme-dark, .theme-darker, .theme-midnight, body {
+  --font-primary: "JetBrains Mono", monospace;
+  --font-display: "JetBrains Mono", monospace;
+  --font-headline: "JetBrains Mono", monospace;
+  --font-code: "JetBrains Mono", monospace;
+}
+
+/* ── sharp corners everywhere (avatars survive: they're SVG-masked) ── */
+* {
+  border-radius: 0 !important;
+}
+
+/* ── hairline structure ── */
+[class*="sidebar_"] {
+  border-right: 1px solid #1a1a1a;
+}
+[class*="chatContent"] {
+  border-left: none;
+}
+[class*="panels_"] {
+  border-top: 1px solid #1a1a1a;
+}
+[role="dialog"],
+[class*="popout"],
+[class*="menu_"] {
+  border: 1px solid #333333 !important;
+}
+
+/* mentions of you: amber left rule, no soft wash */
+[class*="mentioned"] {
+  border-left: 2px solid #ffb000 !important;
+}
+
+/* unread pill / selected channel: keep it ink */
+[class*="unread_"] {
+  background: #f2f2f0 !important;
+}
+
+/* ── structural background overrides (variable families Discord keeps
+      renaming — pin the big surfaces directly) ── */
+[class*="guilds_"] {
+  background: #050505 !important;
+}
+[class*="sidebar_"],
+[class*="sidebarList_"],
+[class*="sidebarRegion"] {
+  background: #0a0a0a !important;
+}
+[class*="page_"],
+[class*="peopleColumn"],
+[class*="chat_"] > [class*="content"],
+[class*="panels_"] {
+  background: #0a0a0a !important;
+}
+[class*="container_"][class*="themed"],
+[class*="chatHeaderBar"],
+header[class*="header"] {
+  background: #0a0a0a !important;
+}
+
+/* brand buttons: amber fill, black text (blurple purge — modern builds
+   use the button_/primary_ class family; legacy uses lookFilled/colorBrand) */
+button[class*="colorBrand"],
+[class*="lookFilled"][class*="colorBrand"],
+button[class*="primary_"],
+[class*="addFriend_"] {
+  background-color: #ffb000 !important;
+  color: #050505 !important;
+}
+button[class*="colorBrand"]:hover,
+[class*="lookFilled"][class*="colorBrand"]:hover,
+button[class*="primary_"]:hover,
+[class*="addFriend_"]:hover {
+  background-color: #ffc94d !important;
+  color: #050505 !important;
+}
+
+/* bot tags: quiet gray, not blurple */
+[class*="botTag_"],
+[class*="botTagRegular_"] {
+  background-color: #333333 !important;
+  color: #c8c8c8 !important;
+}
+
+/* server-rail home/action pills: ink on raised gray, not blurple */
+[class*="childWrapper_"] {
+  background-color: #1a1a1a !important;
+  color: #f2f2f0 !important;
+}
