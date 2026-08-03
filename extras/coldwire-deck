@@ -59,24 +59,34 @@ MESH=$(wait_for_title '^coldwire-mesh$' 5) || exit 1
 STATS=$(wait_for_title '^coldwire-stats$' 5) || exit 1
 
 NET=$(wait_for_title '^coldwire-net$' 5)
+WAVE=$(wait_for_title '^coldwire-wave$' 5)
 
 # pin panels to the build workspace
-for id in "$CLOCK" "$MESH" "$STATS" "$NET"; do [ -n "$id" ] && place "$id"; done
+for id in "$CLOCK" "$MESH" "$STATS" "$NET" "$WAVE"; do [ -n "$id" ] && place "$id"; done
 
-# park the neural map at the far right (it lives just past the screen edge —
-# focus it to scroll the deck and reveal it)
-if [ -n "$NET" ]; then
-  msg focus-window --id "$NET"
-  prev=-1
-  while :; do
-    col=$(niri msg --json windows | python3 -c "
+colof() { niri msg --json windows | python3 -c "
 import json,sys
 ws = json.load(sys.stdin)
-print(next(w['layout']['pos_in_scrolling_layout'][0] for w in ws if w['id']==$NET))")
+print(next(w['layout']['pos_in_scrolling_layout'][0] for w in ws if w['id']==$1))"; }
+
+park_right() { # walk a window's column to the far right
+  msg focus-window --id "$1"
+  local prev=-1 col
+  while :; do
+    col=$(colof "$1")
     [ "$col" = "$prev" ] && break
     prev=$col
     msg move-column-right
   done
+}
+
+# park the audio tap out of the way while the rail builds
+[ -n "$WAVE" ] && park_right "$WAVE"
+
+# park the neural map at the far right (it lives just past the screen edge —
+# focus it to scroll the deck and reveal it)
+if [ -n "$NET" ]; then
+  park_right "$NET"
   msg set-column-width "1300"
 fi
 
@@ -109,19 +119,13 @@ msg focus-window --id "$MESH";  msg set-window-height "560"
 # 3. terminals — center column: two stacked fish terminals, half height each
 MAIN=$(new_foot_id foot -T coldwire-main fish)
 [ -n "$MAIN" ] && { place "$MAIN"; msg focus-window --id "$MAIN"; msg set-column-width "1500"; }
-AUX=$(new_foot_id foot -T coldwire-aux fish)
-if [ -n "$AUX" ] && [ -n "$MAIN" ]; then
-  place "$AUX"; msg focus-window --id "$AUX"
-  maincol=$(niri msg --json windows | python3 -c "
-import json,sys
-ws = json.load(sys.stdin)
-print(next(w['layout']['pos_in_scrolling_layout'][0] for w in ws if w['id']==$MAIN))")
+# audio tap joins the main column (bottom half)
+if [ -n "$WAVE" ] && [ -n "$MAIN" ]; then
+  msg focus-window --id "$WAVE"
+  maincol=$(colof "$MAIN")
   while :; do
     msg consume-or-expel-window-left
-    col=$(niri msg --json windows | python3 -c "
-import json,sys
-ws = json.load(sys.stdin)
-print(next(w['layout']['pos_in_scrolling_layout'][0] for w in ws if w['id']==$AUX))")
+    col=$(colof "$WAVE")
     [ "$col" -le "$maincol" ] && break
   done
   msg reset-window-height

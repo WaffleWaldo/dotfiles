@@ -369,7 +369,7 @@ ShellRoot {
     }
   }
 
-  // ══ window: neural map ══
+  // ══ window: neural map (live Obsidian vault graph) ══
   FloatingWindow {
     title: "coldwire-net"
     implicitWidth: 1300
@@ -381,14 +381,40 @@ ShellRoot {
 
       DecodeText {
         x: 14; y: 10
-        target: "COLDWIRE // NEURAL_MAP"
+        target: "COLDWIRE // VAULT_MAP"
       }
       MicroLabel {
         id: netMeta
         anchors.right: parent.right
         anchors.rightMargin: 14
         y: 10
-        text: "NODES 00 // LINKS 00"
+        text: "LOADING"
+      }
+
+      // regenerate from the vault, then load
+      Process {
+        id: graphLoader
+        command: ["sh", "-c", "python3 ~/dotfiles/extras/coldwire-vaultmap.py >/dev/null 2>&1; cat ~/.cache/coldwire/vault-graph.json 2>/dev/null"]
+        running: true
+        stdout: StdioCollector {
+          onStreamFinished: {
+            try {
+              var g = JSON.parse(text);
+              net.nodes = g.nodes;
+              net.links = g.links;
+              netMeta.text = "NOTES " + g.nodes.length + " // LINKS " + g.links.length;
+            } catch (e) {
+              netMeta.text = "NO VAULT DATA";
+            }
+          }
+        }
+      }
+      Timer {
+        // refresh the map every 10 min (vault changes)
+        interval: 600000
+        running: true
+        repeat: true
+        onTriggered: graphLoader.running = true
       }
 
       Canvas {
@@ -400,61 +426,20 @@ ShellRoot {
         property var nodes: []
         property var links: []
         property var pulses: []
-
-        Component.onCompleted: {
-          var N = 46;
-          var ns = [];
-          for (var i = 0; i < N; i++) {
-            ns.push({
-              bx: 0.06 + Math.random() * 0.88,
-              by: 0.08 + Math.random() * 0.84,
-              p1: Math.random() * 6.28,
-              p2: Math.random() * 6.28,
-              s1: 0.4 + Math.random() * 0.6,
-              amber: Math.random() < 0.15,
-              deg: 0,
-              tag: "N_" + ("0" + i.toString(16).toUpperCase()).slice(-2)
-            });
-          }
-          // k-nearest links (2 per node, deduped)
-          var ls = [];
-          var seen = {};
-          for (var i = 0; i < N; i++) {
-            var d = [];
-            for (var j = 0; j < N; j++) {
-              if (i === j) continue;
-              var dx = ns[i].bx - ns[j].bx, dy = ns[i].by - ns[j].by;
-              d.push([dx * dx + dy * dy, j]);
-            }
-            d.sort((a, b) => a[0] - b[0]);
-            for (var k = 0; k < 2; k++) {
-              var j2 = d[k][1];
-              var key = Math.min(i, j2) + "-" + Math.max(i, j2);
-              if (!seen[key]) {
-                seen[key] = true;
-                ls.push([i, j2]);
-                ns[i].deg++;
-                ns[j2].deg++;
-              }
-            }
-          }
-          nodes = ns;
-          links = ls;
-          netMeta.text = "NODES " + N + " // LINKS " + ls.length;
-        }
+        property int hoverIdx: -1
+        property int dragIdx: -1
+        property bool dragged: false
 
         Timer {
-          interval: 50
+          interval: 66
           running: true
           repeat: true
           onTriggered: {
-            net.t += 0.05;
-            // occasionally launch an amber pulse down a random link
-            if (net.links.length && Math.random() < 0.06) {
+            net.t += 0.04;
+            if (net.links.length && Math.random() < 0.05)
               net.pulses.push({ link: Math.floor(Math.random() * net.links.length), p: 0 });
-            }
             for (var i = net.pulses.length - 1; i >= 0; i--) {
-              net.pulses[i].p += 0.03;
+              net.pulses[i].p += 0.025;
               if (net.pulses[i].p >= 1)
                 net.pulses.splice(i, 1);
             }
@@ -462,11 +447,55 @@ ShellRoot {
           }
         }
 
-        function pos(n) {
+        function pos(n, i) {
+          if (i === dragIdx)
+            return [n.x * width, n.y * height];
           return [
-            (n.bx + 0.012 * Math.sin(t * n.s1 + n.p1)) * width,
-            (n.by + 0.012 * Math.cos(t * n.s1 * 0.8 + n.p2)) * height
+            (n.x + 0.010 * Math.sin(t * (0.5 + (i % 7) * 0.09) + i)) * width,
+            (n.y + 0.010 * Math.cos(t * (0.4 + (i % 5) * 0.11) + i * 1.7)) * height
           ];
+        }
+
+        function nodeAt(mx, my) {
+          var best = -1, bestD = 14 * 14;
+          for (var i = 0; i < nodes.length; i++) {
+            var p = pos(nodes[i], i);
+            var dx = p[0] - mx, dy = p[1] - my;
+            var d2 = dx * dx + dy * dy;
+            if (d2 < bestD) {
+              bestD = d2;
+              best = i;
+            }
+          }
+          return best;
+        }
+
+        MouseArea {
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: net.hoverIdx >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
+          onPositionChanged: mouse => {
+            if (net.dragIdx >= 0) {
+              net.nodes[net.dragIdx].x = Math.max(0.02, Math.min(0.98, mouse.x / net.width));
+              net.nodes[net.dragIdx].y = Math.max(0.02, Math.min(0.98, mouse.y / net.height));
+              net.dragged = true;
+            } else {
+              net.hoverIdx = net.nodeAt(mouse.x, mouse.y);
+            }
+          }
+          onPressed: mouse => {
+            net.dragIdx = net.nodeAt(mouse.x, mouse.y);
+            net.dragged = false;
+          }
+          onReleased: {
+            if (net.dragIdx >= 0 && !net.dragged) {
+              // click: open the note in Obsidian
+              var n = net.nodes[net.dragIdx];
+              Qt.openUrlExternally("obsidian://open?vault=brain&file=" + encodeURIComponent(n.p));
+            }
+            net.dragIdx = -1;
+          }
+          onExited: net.hoverIdx = -1
         }
 
         onPaint: {
@@ -474,40 +503,190 @@ ShellRoot {
           ctx.reset();
           if (!nodes.length)
             return;
-          var pts = nodes.map(pos);
+          var pts = [];
+          for (var i = 0; i < nodes.length; i++)
+            pts.push(pos(nodes[i], i));
+          var focusIdx = dragIdx >= 0 ? dragIdx : hoverIdx;
           // links
           for (var l = 0; l < links.length; l++) {
-            var a = pts[links[l][0]], b = pts[links[l][1]];
-            ctx.strokeStyle = Qt.rgba(root.cInk.r, root.cInk.g, root.cInk.b, 0.16);
+            var la = links[l][0], lb = links[l][1];
+            var a = pts[la], b = pts[lb];
+            var lit = focusIdx >= 0 && (la === focusIdx || lb === focusIdx);
+            if (lit) {
+              ctx.strokeStyle = Qt.rgba(root.cAmber.r, root.cAmber.g, root.cAmber.b, 0.55);
+            } else {
+              ctx.strokeStyle = Qt.rgba(root.cInk.r, root.cInk.g, root.cInk.b, focusIdx >= 0 ? 0.08 : 0.15);
+            }
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(a[0], a[1]);
             ctx.lineTo(b[0], b[1]);
             ctx.stroke();
           }
-          // pulses: amber sparks traveling links
+          // pulses
           for (var p = 0; p < pulses.length; p++) {
             var lk = links[pulses[p].link];
             var a2 = pts[lk[0]], b2 = pts[lk[1]];
-            var px = a2[0] + (b2[0] - a2[0]) * pulses[p].p;
-            var py = a2[1] + (b2[1] - a2[1]) * pulses[p].p;
             ctx.fillStyle = Qt.rgba(root.cAmber.r, root.cAmber.g, root.cAmber.b, 0.9);
-            ctx.fillRect(px - 1.5, py - 1.5, 3, 3);
+            ctx.fillRect(a2[0] + (b2[0] - a2[0]) * pulses[p].p - 1.5,
+                         a2[1] + (b2[1] - a2[1]) * pulses[p].p - 1.5, 3, 3);
           }
           // nodes
           ctx.font = "8px \"" + root.mono + "\"";
           for (var i = 0; i < nodes.length; i++) {
             var n = nodes[i];
-            var sz = 2 + Math.min(n.deg, 5);
-            var c = n.amber ? root.cAmber : (n.deg >= 4 ? root.cBright : root.cDim);
-            ctx.fillStyle = Qt.rgba(c.r, c.g, c.b, n.amber ? 1 : 0.85);
+            var sz = 2 + Math.min(n.d * 0.4, 5);
+            var isFocus = i === focusIdx;
+            var neighbor = false;
+            if (focusIdx >= 0 && !isFocus) {
+              for (var l2 = 0; l2 < links.length; l2++) {
+                if ((links[l2][0] === focusIdx && links[l2][1] === i) ||
+                    (links[l2][1] === focusIdx && links[l2][0] === i)) {
+                  neighbor = true;
+                  break;
+                }
+              }
+            }
+            var c = n.a ? root.cAmber : (n.d >= 4 ? root.cBright : root.cDim);
+            var alpha = focusIdx >= 0 && !isFocus && !neighbor ? 0.30 : (n.a ? 1 : 0.85);
+            ctx.fillStyle = Qt.rgba(c.r, c.g, c.b, alpha);
             ctx.beginPath();
             ctx.arc(pts[i][0], pts[i][1], sz / 2, 0, 6.29);
             ctx.fill();
-            if (n.deg >= 4 || n.amber) {
-              ctx.fillStyle = Qt.rgba(root.cDim.r, root.cDim.g, root.cDim.b, 0.8);
-              ctx.fillText(n.tag, pts[i][0] + sz / 2 + 4, pts[i][1] + 3);
+            if (isFocus) {
+              ctx.strokeStyle = Qt.rgba(root.cAmber.r, root.cAmber.g, root.cAmber.b, 0.9);
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.arc(pts[i][0], pts[i][1], sz / 2 + 4, 0, 6.29);
+              ctx.stroke();
             }
+            if (isFocus || neighbor || (focusIdx < 0 && n.a)) {
+              ctx.fillStyle = isFocus
+                ? Qt.rgba(root.cBright.r, root.cBright.g, root.cBright.b, 1)
+                : Qt.rgba(root.cDim.r, root.cDim.g, root.cDim.b, 0.85);
+              ctx.fillText(n.n.length > 24 ? n.n.slice(0, 23) + "…" : n.n,
+                           pts[i][0] + sz / 2 + 5, pts[i][1] + 3);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ══ window: audio tap ══
+  FloatingWindow {
+    title: "coldwire-wave"
+    implicitWidth: 1500
+    implicitHeight: 400
+    color: "transparent"
+
+    PanelFrame {
+      anchors.fill: parent
+
+      DecodeText {
+        x: 14; y: 10
+        target: "COLDWIRE // AUDIO_TAP"
+      }
+      MicroLabel {
+        anchors.right: parent.right
+        anchors.rightMargin: 14
+        y: 10
+        text: wave.live ? "LIVE" : "SYNTH // IDLE"
+        color: wave.live ? root.cAmber : root.cDim
+      }
+
+      Canvas {
+        id: wave
+        anchors.fill: parent
+        anchors.topMargin: 30
+        anchors.bottomMargin: 10
+        property var bars: []
+        property var peaks: []
+        property real idleT: 0
+        property real lastSignal: 0
+        readonly property bool live: lastSignal > 0
+
+        Process {
+          id: cavaProc
+          command: ["cava", "-p", Quickshell.shellDir + "/cava_raw.conf"]
+          running: true
+          stdout: SplitParser {
+            onRead: line => {
+              var vals = line.split(";").filter(s => s.length).map(Number);
+              if (!vals.length)
+                return;
+              var mx = Math.max.apply(null, vals);
+              if (mx > 2) {
+                wave.lastSignal = 30;   // ~3s of live hold
+                wave.bars = vals;
+                wave.requestPaint();
+              } else if (wave.lastSignal > 0) {
+                wave.lastSignal -= 0.35;
+                wave.bars = vals;
+                wave.requestPaint();
+              }
+              // fully idle: the synth timer owns the bars
+            }
+          }
+        }
+
+        Timer {
+          // idle synth + peak decay driver
+          interval: 50
+          running: true
+          repeat: true
+          onTriggered: {
+            wave.idleT += 0.09;
+            if (!wave.live) {
+              var n = 64;
+              var vals = [];
+              for (var i = 0; i < n; i++) {
+                var envelope = Math.exp(-Math.pow((i - n / 2) / (n / 2.6), 2));
+                var v = 4 + 7 * envelope * Math.abs(Math.sin(wave.idleT * 0.5 + i * 0.33))
+                        + 2.5 * Math.abs(Math.sin(wave.idleT * 1.7 + i * 1.1))
+                        + Math.random() * 1.6;
+                vals.push(v);
+              }
+              wave.bars = vals;
+              wave.requestPaint();
+            }
+          }
+        }
+
+        onPaint: {
+          var ctx = getContext("2d");
+          ctx.reset();
+          if (!bars.length)
+            return;
+          var n = bars.length;
+          var cy = height / 2;
+          var bw = width / n;
+          // center hairline
+          ctx.strokeStyle = Qt.rgba(root.cLine.r, root.cLine.g, root.cLine.b, 0.5);
+          ctx.setLineDash([1, 4]);
+          ctx.beginPath();
+          ctx.moveTo(0, cy + 0.5);
+          ctx.lineTo(width, cy + 0.5);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          if (peaks.length !== n)
+            peaks = new Array(n).fill(0);
+          for (var i = 0; i < n; i++) {
+            var v = Math.min(bars[i], 100) / 100;
+            var h = Math.max(v * (height * 0.46), 1);
+            peaks[i] = Math.max(peaks[i] - height * 0.006, h);
+            var x = i * bw + bw * 0.5;
+            var col = live ? root.cInk : root.cDim;
+            ctx.strokeStyle = Qt.rgba(col.r, col.g, col.b, live ? 0.9 : 0.55);
+            ctx.lineWidth = Math.max(bw * 0.28, 1);
+            ctx.beginPath();
+            ctx.moveTo(x, cy - h);
+            ctx.lineTo(x, cy + h);
+            ctx.stroke();
+            // amber peak caps
+            ctx.fillStyle = Qt.rgba(root.cAmber.r, root.cAmber.g, root.cAmber.b, live ? 0.9 : 0.45);
+            ctx.fillRect(x - 1, cy - peaks[i] - 2, 2, 2);
+            ctx.fillRect(x - 1, cy + peaks[i], 2, 2);
           }
         }
       }
