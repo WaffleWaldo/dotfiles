@@ -369,6 +369,151 @@ ShellRoot {
     }
   }
 
+  // ══ window: neural map ══
+  FloatingWindow {
+    title: "coldwire-net"
+    implicitWidth: 1300
+    implicitHeight: 800
+    color: "transparent"
+
+    PanelFrame {
+      anchors.fill: parent
+
+      DecodeText {
+        x: 14; y: 10
+        target: "COLDWIRE // NEURAL_MAP"
+      }
+      MicroLabel {
+        id: netMeta
+        anchors.right: parent.right
+        anchors.rightMargin: 14
+        y: 10
+        text: "NODES 00 // LINKS 00"
+      }
+
+      Canvas {
+        id: net
+        anchors.fill: parent
+        anchors.topMargin: 30
+        anchors.bottomMargin: 10
+        property real t: 0
+        property var nodes: []
+        property var links: []
+        property var pulses: []
+
+        Component.onCompleted: {
+          var N = 46;
+          var ns = [];
+          for (var i = 0; i < N; i++) {
+            ns.push({
+              bx: 0.06 + Math.random() * 0.88,
+              by: 0.08 + Math.random() * 0.84,
+              p1: Math.random() * 6.28,
+              p2: Math.random() * 6.28,
+              s1: 0.4 + Math.random() * 0.6,
+              amber: Math.random() < 0.15,
+              deg: 0,
+              tag: "N_" + ("0" + i.toString(16).toUpperCase()).slice(-2)
+            });
+          }
+          // k-nearest links (2 per node, deduped)
+          var ls = [];
+          var seen = {};
+          for (var i = 0; i < N; i++) {
+            var d = [];
+            for (var j = 0; j < N; j++) {
+              if (i === j) continue;
+              var dx = ns[i].bx - ns[j].bx, dy = ns[i].by - ns[j].by;
+              d.push([dx * dx + dy * dy, j]);
+            }
+            d.sort((a, b) => a[0] - b[0]);
+            for (var k = 0; k < 2; k++) {
+              var j2 = d[k][1];
+              var key = Math.min(i, j2) + "-" + Math.max(i, j2);
+              if (!seen[key]) {
+                seen[key] = true;
+                ls.push([i, j2]);
+                ns[i].deg++;
+                ns[j2].deg++;
+              }
+            }
+          }
+          nodes = ns;
+          links = ls;
+          netMeta.text = "NODES " + N + " // LINKS " + ls.length;
+        }
+
+        Timer {
+          interval: 50
+          running: true
+          repeat: true
+          onTriggered: {
+            net.t += 0.05;
+            // occasionally launch an amber pulse down a random link
+            if (net.links.length && Math.random() < 0.06) {
+              net.pulses.push({ link: Math.floor(Math.random() * net.links.length), p: 0 });
+            }
+            for (var i = net.pulses.length - 1; i >= 0; i--) {
+              net.pulses[i].p += 0.03;
+              if (net.pulses[i].p >= 1)
+                net.pulses.splice(i, 1);
+            }
+            net.requestPaint();
+          }
+        }
+
+        function pos(n) {
+          return [
+            (n.bx + 0.012 * Math.sin(t * n.s1 + n.p1)) * width,
+            (n.by + 0.012 * Math.cos(t * n.s1 * 0.8 + n.p2)) * height
+          ];
+        }
+
+        onPaint: {
+          var ctx = getContext("2d");
+          ctx.reset();
+          if (!nodes.length)
+            return;
+          var pts = nodes.map(pos);
+          // links
+          for (var l = 0; l < links.length; l++) {
+            var a = pts[links[l][0]], b = pts[links[l][1]];
+            ctx.strokeStyle = Qt.rgba(root.cInk.r, root.cInk.g, root.cInk.b, 0.16);
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(a[0], a[1]);
+            ctx.lineTo(b[0], b[1]);
+            ctx.stroke();
+          }
+          // pulses: amber sparks traveling links
+          for (var p = 0; p < pulses.length; p++) {
+            var lk = links[pulses[p].link];
+            var a2 = pts[lk[0]], b2 = pts[lk[1]];
+            var px = a2[0] + (b2[0] - a2[0]) * pulses[p].p;
+            var py = a2[1] + (b2[1] - a2[1]) * pulses[p].p;
+            ctx.fillStyle = Qt.rgba(root.cAmber.r, root.cAmber.g, root.cAmber.b, 0.9);
+            ctx.fillRect(px - 1.5, py - 1.5, 3, 3);
+          }
+          // nodes
+          ctx.font = "8px \"" + root.mono + "\"";
+          for (var i = 0; i < nodes.length; i++) {
+            var n = nodes[i];
+            var sz = 2 + Math.min(n.deg, 5);
+            var c = n.amber ? root.cAmber : (n.deg >= 4 ? root.cBright : root.cDim);
+            ctx.fillStyle = Qt.rgba(c.r, c.g, c.b, n.amber ? 1 : 0.85);
+            ctx.beginPath();
+            ctx.arc(pts[i][0], pts[i][1], sz / 2, 0, 6.29);
+            ctx.fill();
+            if (n.deg >= 4 || n.amber) {
+              ctx.fillStyle = Qt.rgba(root.cDim.r, root.cDim.g, root.cDim.b, 0.8);
+              ctx.fillText(n.tag, pts[i][0] + sz / 2 + 4, pts[i][1] + 3);
+            }
+          }
+        }
+      }
+    }
+  }
+
   // ══ window: stats ══
   FloatingWindow {
     title: "coldwire-stats"

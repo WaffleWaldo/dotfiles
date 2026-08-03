@@ -58,8 +58,27 @@ CLOCK=$(wait_for_title '^coldwire-clock$' 15) || exit 1
 MESH=$(wait_for_title '^coldwire-mesh$' 5) || exit 1
 STATS=$(wait_for_title '^coldwire-stats$' 5) || exit 1
 
+NET=$(wait_for_title '^coldwire-net$' 5)
+
 # pin panels to the build workspace
-for id in "$CLOCK" "$MESH" "$STATS"; do place "$id"; done
+for id in "$CLOCK" "$MESH" "$STATS" "$NET"; do [ -n "$id" ] && place "$id"; done
+
+# park the neural map at the far right (it lives just past the screen edge —
+# focus it to scroll the deck and reveal it)
+if [ -n "$NET" ]; then
+  msg focus-window --id "$NET"
+  prev=-1
+  while :; do
+    col=$(niri msg --json windows | python3 -c "
+import json,sys
+ws = json.load(sys.stdin)
+print(next(w['layout']['pos_in_scrolling_layout'][0] for w in ws if w['id']==$NET))")
+    [ "$col" = "$prev" ] && break
+    prev=$col
+    msg move-column-right
+  done
+  msg set-column-width "1300"
+fi
 
 # 2. stack the rail: clock first, mesh + stats consumed into its column
 msg focus-window --id "$CLOCK";  msg move-column-to-first
