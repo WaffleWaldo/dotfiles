@@ -604,11 +604,13 @@ ShellRoot {
         anchors.bottomMargin: 8
         renderStrategy: Canvas.Cooperative
         property real t: 0
-        property var spec: []          // smoothed spectrum 0..1 (64 bins)
+        property real level: 0          // smoothed loudness 0..1
         property real lastSignal: 0
+        property var ripples: []        // {r, amp} expanding rings
+        property real sinceRipple: 99
         readonly property bool live: lastSignal > 0
-        readonly property int rows: 34
-        readonly property int cols: 110
+        readonly property int rows: 46
+        readonly property int cols: 150
 
         Process {
           id: cavaProc
@@ -619,16 +621,16 @@ ShellRoot {
               var vals = line.split(";").filter(s => s.length).map(Number);
               if (!vals.length)
                 return;
-              if (wave.spec.length !== vals.length)
-                wave.spec = new Array(vals.length).fill(0);
-              var mx = 0;
+              var sum = 0, mx = 0;
               for (var i = 0; i < vals.length; i++) {
                 var v = Math.min(vals[i], 100) / 100;
-                // fast attack, slow release — the sea swallows sound slowly
-                wave.spec[i] = v > wave.spec[i] ? v : wave.spec[i] * 0.90;
+                sum += v * v;
                 if (vals[i] > mx)
                   mx = vals[i];
               }
+              // hot sensitivity: RMS boosted hard, fast attack / slow release
+              var lvl = Math.min(Math.sqrt(sum / vals.length) * 3.2, 1);
+              wave.level = lvl > wave.level ? lvl : wave.level * 0.92;
               if (mx > 2)
                 wave.lastSignal = 30;
               else if (wave.lastSignal > 0)
@@ -638,12 +640,23 @@ ShellRoot {
         }
 
         Timer {
-          // ~25fps ocean
           interval: 40
           running: true
           repeat: true
           onTriggered: {
             wave.t += 0.035;
+            wave.sinceRipple += 0.04;
+            // drop a ring at the epicenter while audio plays
+            if (wave.live && wave.level > 0.10 && wave.sinceRipple > 0.24) {
+              wave.ripples.push({ r: 0.02, amp: Math.min(wave.level * 1.3, 1) });
+              wave.sinceRipple = 0;
+            }
+            for (var i = wave.ripples.length - 1; i >= 0; i--) {
+              wave.ripples[i].r += 0.016;
+              wave.ripples[i].amp *= 0.955;
+              if (wave.ripples[i].amp < 0.04 || wave.ripples[i].r > 1.5)
+                wave.ripples.splice(i, 1);
+            }
             wave.requestPaint();
           }
         }
@@ -652,41 +665,49 @@ ShellRoot {
           var ctx = getContext("2d");
           ctx.reset();
           var w = width, h = height;
-          var horizon = h * 0.16;
-          var nSpec = spec.length || 64;
+          var horizon = h * 0.14;
           var amberPts = [];
+          var rip = ripples;
+          var lvl = level;
           ctx.fillStyle = Qt.rgba(root.cInk.r, root.cInk.g, root.cInk.b, 1);
           for (var r = 0; r < rows; r++) {
-            var z = r / (rows - 1);                       // 0 far, 1 near
-            var ybase = horizon + Math.pow(z, 1.5) * h * 0.80;
+            var z = r / (rows - 1);                        // 0 far, 1 near
+            var ybase = horizon + Math.pow(z, 1.5) * h * 0.82;
             var spread = 0.60 + 0.50 * z;
-            var waveLift = 12 + 60 * z;
-            var audioLift = 16 + 130 * z;
-            var rowGlow = 0.22 + 0.68 * Math.pow(z, 0.9);
+            var depthScale = 0.30 + 0.70 * z;              // px lift grows toward viewer
+            var rowGlow = 0.20 + 0.70 * Math.pow(z, 0.9);
             var sz = z < 0.35 ? 1 : 2;
             for (var c = 0; c < cols; c++) {
               var x01 = c / (cols - 1);
-              // deterministic swell — three traveling waves, no jitter
-              var swell = 0.33 * Math.sin(x01 * 7.3 + t * 0.9 + z * 3.1)
-                        + 0.22 * Math.sin(x01 * 13.7 - t * 1.3 + z * 1.7)
-                        + 0.12 * Math.sin(x01 * 23.0 + t * 2.0 - z * 4.2);
-              var hgt = (swell + 0.67) / 1.34;            // 0..1
-              // audio ridge: bass at center, treble at edges
-              var a = 0;
-              if (spec.length) {
-                var fi = Math.min(nSpec - 1, Math.round(Math.abs(x01 - 0.5) * 2 * (nSpec - 1)));
-                a = spec[fi];
+              // radial distance from the plane's exact center (aspect-weighted)
+              var dx = (x01 - 0.5) * 1.9;
+              var dz = z - 0.5;
+              var d = Math.sqrt(dx * dx + dz * dz);
+              // calm ambient swell
+              var swell = 0.5 * Math.sin(x01 * 7.3 + t * 0.8 + z * 3.1)
+                        + 0.3 * Math.sin(x01 * 13.7 - t * 1.2 + z * 1.7)
+                        + 0.2 * Math.sin(x01 * 23.0 + t * 1.8 - z * 4.2);
+              var lift = (swell + 1) * 14;                 // gentle base sea
+              // the mountain: audio raises a sharp peak at dead center
+              var mountain = lvl * Math.exp(-(d * d) / (0.045 * 0.045 * 2));
+              lift += mountain * 260;
+              // expanding rings from the drop point
+              var ringSum = 0;
+              for (var q = 0; q < rip.length; q++) {
+                var rr = d - rip[q].r;
+                ringSum += rip[q].amp * Math.exp(-(rr * rr) / (0.024 * 0.024 * 2));
               }
+              lift += ringSum * 95;
               var sx = (x01 - 0.5) * spread * w * 1.30 + w / 2;
-              var sy = ybase - hgt * waveLift - a * a * audioLift;
-              var bright = rowGlow * (0.30 + 0.55 * hgt + 0.9 * a);
-              ctx.globalAlpha = Math.min(bright, 1);
+              var sy = ybase - lift * depthScale;
+              var energy = mountain + ringSum * 0.8;
+              ctx.globalAlpha = Math.min(rowGlow * (0.32 + 0.30 * (swell * 0.5 + 0.5) + 1.4 * energy), 1);
               ctx.fillRect(sx, sy, sz, sz);
-              if (a > 0.6 && z > 0.3)
+              if (energy > 0.55)
                 amberPts.push([sx, sy - 2, sz]);
             }
           }
-          // amber crests where the audio breaks the surface
+          // amber: the peak cap and the strongest ring crests
           ctx.globalAlpha = 0.95;
           ctx.fillStyle = Qt.rgba(root.cAmber.r, root.cAmber.g, root.cAmber.b, 1);
           for (var i = 0; i < amberPts.length; i++)
