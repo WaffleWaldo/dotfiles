@@ -16,6 +16,9 @@ binds {
     Mod+ALT+L                           hotkey-overlay-title="Lock Screen: noctalia lock" { spawn-sh "qs -c noctalia-shell ipc call lockScreen lock"; }
     Mod+Shift+Q                        hotkey-overlay-title="Session Menu: noctalia sessionMenu" { spawn-sh "qs -c noctalia-shell ipc call sessionMenu toggle"; }
 
+    // ─── Voice Dictation ───
+    Mod+Shift+V                         hotkey-overlay-title="Voice Dictation" { spawn "/home/m31/code/personal/voicebox/.venv-gtk/bin/echoflow" "toggle"; }
+
     // ─── Clipboard & Emoji ───
     Mod+V                               hotkey-overlay-title="Clipboard History" { spawn-sh "qs -c noctalia-shell ipc call launcher clipboard"; }
     Mod+Period                          hotkey-overlay-title="Emoji Picker" { spawn-sh "qs -c noctalia-shell ipc call launcher emoji"; }
@@ -97,6 +100,7 @@ binds {
     Mod+S                               { switch-preset-column-width; }
     Mod+F                               { maximize-column; }
     Mod+Shift+F                         { expand-column-to-available-width; }
+    Mod+CTRL+F                          { fullscreen-window; }
     Mod+C                               { center-column; }
     Mod+CTRL+C                          { center-visible-columns; }
     Mod+Minus                           { set-column-width "-10%"; }
@@ -112,6 +116,7 @@ binds {
 
     // ─── Modes ───
     Mod+Space                           { toggle-window-floating; }
+    Mod+Shift+C                         { toggle-window-floating; }
     Mod+W                               { toggle-column-tabbed-display; }
     Mod+Comma                           { consume-window-into-column; }
     // Mod+Period used for emoji picker above

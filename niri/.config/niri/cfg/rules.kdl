@@ -113,7 +113,20 @@
     // ─── Obsidian transparency ───
     window-rule {
         match app-id="obsidian"
+        opacity 0.96
+    }
+
+    // ─── VS Code transparency ───
+    window-rule {
+        match app-id="code"
         opacity 0.92
+    }
+
+    // ─── Steam games: force true fullscreen (niri tiles fullscreen requests by default) ───
+    window-rule {
+        match app-id=r#"^steam_app_\d+$"#
+        open-fullscreen true
+        default-column-width { proportion 1.0; }
     }
 
     // ─── Noctalia wallpaper layer ───

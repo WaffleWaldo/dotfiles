@@ -1,7 +1,5 @@
-[cursor]
-color=e4e2e6 c5c6d0
-
-[colors]
+[colors-dark]
+cursor=e4e2e6 c5c6d0
 background=121316
 foreground=e4e2e6
 

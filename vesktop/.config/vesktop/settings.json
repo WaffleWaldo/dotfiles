@@ -2,5 +2,9 @@
     "transparentWindow": true,
     "discordBranch": "stable",
     "minimizeToTray": true,
-    "arRPC": true
+    "arRPC": true,
+    "spellCheckLanguages": [
+        "en-US",
+        "en"
+    ]
 }

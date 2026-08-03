@@ -24,7 +24,7 @@
     "modules": [
         {
             "type": "title",
-            "format": "{user-name-upper}",
+            "format": "M31",
             "key": " "
         },
         {
@@ -40,20 +40,44 @@
             "key": "kernel"
         },
         {
+            "type": "cpu",
+            "key": "cpu"
+        },
+        {
+            "type": "gpu",
+            "key": "gpu"
+        },
+        {
             "type": "memory",
             "key": "memory"
+        },
+        {
+            "type": "display",
+            "key": "display"
         },
         {
             "type": "terminal",
             "key": "terminal"
         },
         {
+            "type": "shell",
+            "key": "shell"
+        },
+        {
             "type": "wm",
             "key": "wm"
         },
         {
+            "type": "packages",
+            "key": "packages"
+        },
+        {
+            "type": "icons",
+            "key": "icons"
+        },
+        {
             "type": "custom",
-            "format": "github.com/m31",
+            "format": "github.com/WaffleWaldo",
             "key": " "
         },
         "break",

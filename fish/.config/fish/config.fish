@@ -49,6 +49,8 @@ alias finance-client-id="pass insert -f finance/plaid/client-id"
 alias finance-secret="pass insert -f finance/plaid/secret"
 alias cavalier="setsid flatpak run org.nickvision.cavalier &>/dev/null &"
 alias spotify="setsid spotify-launcher &>/dev/null &; exit"
+alias echo-start="setsid /home/m31/code/personal/voicebox/.venv-gtk/bin/echoflow daemon &>/dev/null &"
+alias echo-stop="pkill -f 'echoflow daemon'"
 
 # ─── Yazi file manager (cd on exit) ───
 function fm
@@ -60,4 +62,12 @@ function fm
     end
     rm -f $tmp
 end
+# ─── Property Deal Finder ───
+function deals
+    set -l root ~/code/personal/property-deal-finder
+    export (grep -v '^#' $root/.env | xargs)
+    $root/scraper-bin ingest --sources hud --states NJ,PA,CT --max-price 150000 $argv
+    and $root/analyzer/.venv/bin/python $root/analyzer/analyze.py --down-payment 20000 --strategy fha --output-dir $root/reports
+end
+
 set -gx LEDGER_FILE /home/m31/code/personal/finance/finance-sync/data/journal/main.journal
