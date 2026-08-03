@@ -1,3 +1,6 @@
+# QtVersion=6 is LOAD-BEARING: without it SDDM launches the legacy Qt5
+# greeter binary, which exits 127 on this Qt6-only install -> black screen
+# at login (recoverable only via TTY). Never remove it. (2026-08-03 incident)
 [SddmGreeterTheme]
 Name=Coldwire
 Description=Data-brutalist login for the Coldwire desktop theme.
@@ -8,3 +11,4 @@ MainScript=Main.qml
 ConfigFile=theme.conf
 Theme-Id=coldwire
 Theme-API=2.0
+QtVersion=6
