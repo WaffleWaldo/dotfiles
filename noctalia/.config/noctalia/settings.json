@@ -140,6 +140,9 @@
                     "pinned": []
                 },
                 {
+                    "id": "plugin:coldwire-echoflow"
+                },
+                {
                     "hideWhenZero": false,
                     "hideWhenZeroUnread": false,
                     "iconColor": "none",

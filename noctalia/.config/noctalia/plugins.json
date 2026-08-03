@@ -7,6 +7,10 @@
         }
     ],
     "states": {
+        "coldwire-echoflow": {
+            "enabled": true,
+            "sourceUrl": "https://github.com/noctalia-dev/noctalia-plugins"
+        },
         "coldwire-monitor": {
             "enabled": true,
             "sourceUrl": "https://github.com/noctalia-dev/noctalia-plugins"

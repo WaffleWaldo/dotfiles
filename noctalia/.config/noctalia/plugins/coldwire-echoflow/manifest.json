@@ -1,0 +1,15 @@
+{
+  "id": "coldwire-echoflow",
+  "name": "Coldwire EchoFlow",
+  "version": "1.0.0",
+  "minNoctaliaVersion": "3.6.0",
+  "author": "m31",
+  "license": "MIT",
+  "repository": "local",
+  "description": "Bar indicator + toggle for the EchoFlow voice stack (voicebox daemon + ollama refiner). Amber mic = online; crossed mic = offline, VRAM freed for gaming.",
+  "tags": ["bar-widget", "audio", "coldwire"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "metadata": {}
+}

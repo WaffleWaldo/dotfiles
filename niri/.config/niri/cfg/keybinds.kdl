@@ -18,6 +18,7 @@ binds {
 
     // ─── Voice Dictation ───
     Mod+Shift+V                         hotkey-overlay-title="Voice Dictation" { spawn "/home/m31/code/personal/voicebox/.venv-gtk/bin/echoflow" "toggle"; }
+    Mod+Ctrl+V                          hotkey-overlay-title="EchoFlow On/Off (frees VRAM)" { spawn "/home/m31/dotfiles/extras/echoflow-toggle"; }
 
     // ─── Clipboard & Emoji ───
     Mod+V                               hotkey-overlay-title="Clipboard History" { spawn-sh "qs -c noctalia-shell ipc call launcher clipboard"; }

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Toggle the EchoFlow stack for gaming: voicebox daemon (whisper, ~2.3G VRAM)
+# + ollama echoflow-refiner (~5.3G VRAM). Bound to Mod+Ctrl+V; also clickable
+# via the coldwire-echoflow bar widget.
+set -u
+DAEMON_BIN="$HOME/code/personal/voicebox/.venv-gtk/bin/echoflow"
+
+if pgrep -f "[e]choflow daemon" >/dev/null 2>&1; then
+  pkill -f "[e]choflow daemon"
+  ollama stop echoflow-refiner >/dev/null 2>&1
+  notify-send -u low -t 3000 "ECHOFLOW // OFFLINE" "Daemon stopped, refiner unloaded — VRAM reclaimed"
+else
+  setsid -f "$DAEMON_BIN" daemon >/dev/null 2>&1
+  # warm the refiner in the background so the first dictation isn't slow
+  (curl -s --max-time 120 http://127.0.0.1:11434/api/generate -d '{"model":"echoflow-refiner"}' >/dev/null 2>&1 &)
+  notify-send -u low -t 3000 "ECHOFLOW // ONLINE" "Daemon up, refiner warming"
+fi
