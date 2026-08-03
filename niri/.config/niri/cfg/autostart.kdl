@@ -4,5 +4,5 @@
     spawn-sh-at-startup "/usr/lib/polkit-kde-authentication-agent-1 &" // Polkit
     spawn-sh-at-startup "qs -c noctalia-shell"
     spawn-at-startup "wl-paste" "--watch" "cliphist" "store"
-    spawn-at-startup "/home/m31/code/personal/voicebox/.venv-gtk/bin/voicebox" "daemon"
+    spawn-at-startup "/home/m31/code/personal/voicebox/.venv-gtk/bin/echoflow" "daemon"
     spawn-sh-at-startup "/home/m31/dotfiles/extras/coldwire-deck --boot" // Coldwire dashboard on ws 1
