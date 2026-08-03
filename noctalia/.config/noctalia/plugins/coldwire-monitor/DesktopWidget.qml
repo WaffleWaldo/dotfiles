@@ -96,7 +96,7 @@ DraggableDesktopWidget {
     id: panel
     width: 470
     height: 252
-    color: Qt.rgba(Color.mSurface.r, Color.mSurface.g, Color.mSurface.b, 0.88)
+    color: Qt.rgba(Color.mSurface.r, Color.mSurface.g, Color.mSurface.b, 0.80)
     border.color: root.cFaint
     border.width: 1
 

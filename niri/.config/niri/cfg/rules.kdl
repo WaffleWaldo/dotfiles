@@ -98,19 +98,19 @@
     // ─── Vesktop (Discord) transparency ───
     window-rule {
         match app-id="vesktop"
-        opacity 0.92
+        opacity 0.90
     }
 
     // ─── Obsidian transparency ───
     window-rule {
         match app-id="obsidian"
-        opacity 0.96
+        opacity 0.90
     }
 
     // ─── VS Code transparency ───
     window-rule {
         match app-id="code"
-        opacity 0.92
+        opacity 0.90
     }
 
     // ─── Steam games: force true fullscreen (niri tiles fullscreen requests by default) ───

@@ -448,7 +448,7 @@
         "disableWallpaper": true
     },
     "notifications": {
-        "backgroundOpacity": 1,
+        "backgroundOpacity": 0.92,
         "clearDismissed": true,
         "criticalUrgencyDuration": 15,
         "density": "default",
@@ -480,7 +480,7 @@
     },
     "osd": {
         "autoHideMs": 2000,
-        "backgroundOpacity": 1,
+        "backgroundOpacity": 0.92,
         "enabled": true,
         "enabledTypes": [
             0,
@@ -619,7 +619,7 @@
         "fontDefaultScale": 1,
         "fontFixed": "JetBrains Mono",
         "fontFixedScale": 1,
-        "panelBackgroundOpacity": 0.8400000000000001,
+        "panelBackgroundOpacity": 0.78,
         "panelsAttachedToBar": true,
         "scrollbarAlwaysVisible": true,
         "settingsPanelMode": "attached",

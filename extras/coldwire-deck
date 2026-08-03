@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# coldwire-deck — build the Coldwire dashboard workspace.
+# Layout: [clock/mesh/stats rail 560px] [main terminal] [btop]
+# Usage: coldwire-deck            (build on the current workspace)
+#        coldwire-deck --boot    (wait for niri + noctalia at session start)
+set -u
+
+msg() { niri msg action "$@" >/dev/null 2>&1; }
+
+wids() { niri msg --json windows | python3 -c "
+import json,sys
+for w in json.load(sys.stdin): print(w['id'], w['app_id'], (w.get('title') or '').replace(' ','_'))"; }
+
+wid_by_title() { wids | awk -v t="$1" '$3 ~ t {print $1; exit}'; }
+
+wait_for_title() { # title-regex timeout-secs
+  for _ in $(seq 1 $((${2:-10} * 5))); do
+    local id; id=$(wid_by_title "$1")
+    [ -n "$id" ] && { echo "$id"; return 0; }
+    sleep 0.2
+  done
+  return 1
+}
+
+new_foot_id() { # spawn "$@" and echo the id of the new foot window
+  local before after
+  before=$(wids | awk '$2=="foot"{print $1}' | sort)
+  "$@" >/dev/null 2>&1 &
+  for _ in $(seq 1 50); do
+    after=$(wids | awk '$2=="foot"{print $1}' | sort)
+    local new; new=$(comm -13 <(echo "$before") <(echo "$after") | head -1)
+    [ -n "$new" ] && { echo "$new"; return 0; }
+    sleep 0.2
+  done
+  return 1
+}
+
+if [ "${1:-}" = "--boot" ]; then
+  # session start: wait for niri IPC and give the shell a moment
+  for _ in $(seq 1 50); do niri msg version >/dev/null 2>&1 && break; sleep 0.2; done
+  sleep 2
+fi
+
+# capture the workspace we're building on (indexes are dynamic in niri)
+WS_IDX=$(niri msg --json workspaces | python3 -c "
+import json,sys
+print(next(w['idx'] for w in json.load(sys.stdin) if w['is_active']))")
+
+place() { # pin a window to the build workspace
+  niri msg action move-window-to-workspace --window-id "$1" --focus false "$WS_IDX" >/dev/null 2>&1     || { msg focus-window --id "$1"; msg move-window-to-workspace "$WS_IDX"; }
+}
+
+# 1. panels (idempotent: reuse a running instance's windows)
+if [ -z "$(wid_by_title '^coldwire-stats$')" ]; then
+  setsid -f qs -c coldwire-panels >/dev/null 2>&1
+fi
+CLOCK=$(wait_for_title '^coldwire-clock$' 15) || exit 1
+MESH=$(wait_for_title '^coldwire-mesh$' 5) || exit 1
+STATS=$(wait_for_title '^coldwire-stats$' 5) || exit 1
+
+# pin panels to the build workspace
+for id in "$CLOCK" "$MESH" "$STATS"; do place "$id"; done
+
+# 2. stack the rail: clock first, mesh + stats consumed into its column
+msg focus-window --id "$CLOCK";  msg move-column-to-first
+msg focus-window --id "$MESH"
+while :; do
+  # walk mesh's column left until it sits beside the clock column
+  msg consume-or-expel-window-left
+  col=$(niri msg --json windows | python3 -c "
+import json,sys
+ws = json.load(sys.stdin)
+print(next(w['layout']['pos_in_scrolling_layout'][0] for w in ws if w['id']==$MESH))")
+  [ "$col" -le 1 ] && break
+done
+msg focus-window --id "$STATS"
+while :; do
+  msg consume-or-expel-window-left
+  col=$(niri msg --json windows | python3 -c "
+import json,sys
+ws = json.load(sys.stdin)
+print(next(w['layout']['pos_in_scrolling_layout'][0] for w in ws if w['id']==$STATS))")
+  [ "$col" -le 1 ] && break
+done
+
+# rail geometry
+msg focus-window --id "$CLOCK"; msg set-column-width "560"; msg set-window-height "240"
+msg focus-window --id "$MESH";  msg set-window-height "560"
+
+# 3. terminals
+MAIN=$(new_foot_id foot -T coldwire-main fish)
+[ -n "$MAIN" ] && { place "$MAIN"; msg focus-window --id "$MAIN"; msg set-column-width "1500"; }
+BTOP=$(new_foot_id foot -T coldwire-btop btop)
+[ -n "$BTOP" ] && { place "$BTOP"; msg focus-window --id "$BTOP"; msg set-column-width "1300"; }
+
+# 4. align the strip flush left (rail visible), then land on the main terminal
+msg focus-window --id "$CLOCK"
+[ -n "${MAIN:-}" ] && msg focus-window --id "$MAIN"
+exit 0
