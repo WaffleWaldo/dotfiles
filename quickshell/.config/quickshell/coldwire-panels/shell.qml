@@ -714,6 +714,16 @@ ShellRoot {
         property var spec: []           // rendered spectrum, interpolated per frame
         property real targetLevel: 0
         property real level: 0
+        property real tgBass: 0
+        property real tgMid: 0
+        property real tgTreble: 0
+        property real bass: 0
+        property real mid: 0
+        property real treble: 0
+        property real heave: 0          // slow envelope: sustained low end lifts the whole sea
+        property real sinceBass: 99
+        property real sinceMid: 99
+        property real sinceTreble: 99
         property real lastSignal: 0
         property var ripples: []
         property real sinceRipple: 99
@@ -735,15 +745,25 @@ ShellRoot {
                 wave.targetSpec = new Array(vals.length).fill(0);
                 wave.spec = new Array(vals.length).fill(0);
               }
-              var sum = 0, mx = 0;
-              for (var i = 0; i < vals.length; i++) {
+              var n = vals.length;
+              var bassEnd = Math.max(2, Math.round(n * 0.125));
+              var midEnd = Math.round(n * 0.62);
+              var sb = 0, sm = 0, st = 0, sum = 0, mx = 0;
+              for (var i = 0; i < n; i++) {
                 var v = Math.min(vals[i], 100) / 100;
                 wave.targetSpec[i] = v;
-                sum += v * v;
+                var vv = v * v;
+                sum += vv;
+                if (i < bassEnd) sb += vv;
+                else if (i < midEnd) sm += vv;
+                else st += vv;
                 if (vals[i] > mx)
                   mx = vals[i];
               }
-              wave.targetLevel = Math.min(Math.sqrt(sum / vals.length) * 3.4, 1);
+              wave.tgBass = Math.min(Math.sqrt(sb / bassEnd) * 2.6, 1);
+              wave.tgMid = Math.min(Math.sqrt(sm / (midEnd - bassEnd)) * 3.2, 1);
+              wave.tgTreble = Math.min(Math.sqrt(st / (n - midEnd)) * 3.6, 1);
+              wave.targetLevel = Math.min(Math.sqrt(sum / n) * 3.4, 1);
               if (mx > 2)
                 wave.lastSignal = 3.2;          // seconds of live-hold
             }
@@ -762,19 +782,40 @@ ShellRoot {
             var tg = targetSpec[i];
             spec[i] += (tg - spec[i]) * (tg > spec[i] ? up : down);
           }
-          // loudness with its own envelope
+          // envelopes: fast attack, slow release, per band
           var lUp = 1 - Math.pow(1 - 0.70, dt / 0.016);
           var lDown = 1 - Math.pow(1 - 0.06, dt / 0.016);
-          var beat = targetLevel - level > 0.10;   // onset before smoothing eats it
+          var beatBass = tgBass - bass > 0.11;
+          var beatMid = tgMid - mid > 0.12;
+          var beatTreble = tgTreble - treble > 0.13;
+          bass += (tgBass - bass) * (tgBass > bass ? lUp : lDown);
+          mid += (tgMid - mid) * (tgMid > mid ? lUp : lDown);
+          treble += (tgTreble - treble) * (tgTreble > treble ? lUp : lDown);
           level += (targetLevel - level) * (targetLevel > level ? lUp : lDown);
-          // ripples: beats fire immediately (min 90ms apart), plus a slow pulse while loud
-          sinceRipple += dt;
-          if (live && ((beat && sinceRipple > 0.09) || (level > 0.12 && sinceRipple > 0.30))) {
-            ripples.push({ r: 0.02, amp: Math.min((beat ? targetLevel : level) * 1.35, 1) });
-            sinceRipple = 0;
+          // heave: very slow envelope of sustained low end — the sea breathes with it
+          var hUp = 1 - Math.pow(1 - 0.06, dt / 0.016);
+          var hDown = 1 - Math.pow(1 - 0.015, dt / 0.016);
+          heave += (bass - heave) * (bass > heave ? hUp : hDown);
+          // typed rings: bass = big/slow/wide, mid = standard, treble = fast/thin
+          sinceBass += dt;
+          sinceMid += dt;
+          sinceTreble += dt;
+          if (live && ripples.length < 16) {
+            if ((beatBass && sinceBass > 0.14) || (bass > 0.30 && sinceBass > 0.55)) {
+              ripples.push({ r: 0.02, amp: Math.min(tgBass * 1.5, 1.2), spd: 0.30, wd: 0.040 });
+              sinceBass = 0;
+            }
+            if ((beatMid && sinceMid > 0.11) || (mid > 0.16 && sinceMid > 0.40)) {
+              ripples.push({ r: 0.02, amp: Math.min(tgMid * 1.15, 1), spd: 0.45, wd: 0.024 });
+              sinceMid = 0;
+            }
+            if (beatTreble && sinceTreble > 0.08) {
+              ripples.push({ r: 0.02, amp: Math.min(tgTreble * 0.8, 0.8), spd: 0.62, wd: 0.014 });
+              sinceTreble = 0;
+            }
           }
           for (var q = ripples.length - 1; q >= 0; q--) {
-            ripples[q].r += dt * 0.42;
+            ripples[q].r += dt * ripples[q].spd;
             ripples[q].amp *= Math.pow(0.32, dt);
             if (ripples[q].amp < 0.04 || ripples[q].r > 1.5)
               ripples.splice(q, 1);
@@ -813,7 +854,9 @@ ShellRoot {
           var nSpec = spec.length || 64;
           var amberPts = [];
           var rip = ripples;
-          var lvl = Math.pow(level, 0.8);          // perceptual lift
+          var lvl = Math.pow(Math.min(0.75 * bass + 0.45 * mid, 1), 0.8);
+          var chop = 1 + treble * 2.4;             // hi-hats sharpen the surface texture
+          var heaveLift = 1 + heave * 0.9;         // sustained low end raises the whole sea
           ctx.fillStyle = Qt.rgba(root.cInk.r, root.cInk.g, root.cInk.b, 1);
           for (var r = 0; r < rows; r++) {
             var z = r / (rows - 1);
@@ -829,14 +872,15 @@ ShellRoot {
               var d = Math.sqrt(dx * dx + dz * dz);
               var swell = 0.5 * Math.sin(x01 * 7.3 + t * 0.8 + z * 3.1)
                         + 0.3 * Math.sin(x01 * 13.7 - t * 1.2 + z * 1.7)
-                        + 0.2 * Math.sin(x01 * 23.0 + t * 1.8 - z * 4.2);
-              var lift = (swell + 1) * 14;
+                        + 0.2 * chop * Math.sin(x01 * 23.0 + t * 1.8 - z * 4.2);
+              var lift = (swell + 1) * 14 * heaveLift;
               var mountain = lvl * Math.exp(-(d * d) / (0.045 * 0.045 * 2));
               lift += mountain * 260;
               var ringSum = 0;
               for (var q = 0; q < rip.length; q++) {
                 var rr = d - rip[q].r;
-                ringSum += rip[q].amp * Math.exp(-(rr * rr) / (0.024 * 0.024 * 2));
+                var wd = rip[q].wd;
+                ringSum += rip[q].amp * Math.exp(-(rr * rr) / (wd * wd * 2));
               }
               lift += ringSum * 95;
               var sx = (x01 - 0.5) * spread * w * 1.30 + w / 2;
