@@ -442,6 +442,7 @@ ShellRoot {
         // ── 3D camera ──
         property real yaw: 0.55
         property real pitch: 0.30
+        property real zoom: 1.0
         property bool orbiting: false
         property real lastMx: 0
         property real lastMy: 0
@@ -478,7 +479,7 @@ ShellRoot {
           var z1 = -wx * sy_ + wz * cy_;
           var y1 = wy * cp_ - z1 * sp_;
           var z2 = wy * sp_ + z1 * cp_;
-          var S = Math.min(width, height) * 1.02;
+          var S = Math.min(width, height) * 1.02 * zoom;
           var per = 1 / (1 + z2 * 0.65);
           return [width / 2 + x1 * S * per, height / 2 + y1 * S * per, z2, per];
         }
@@ -525,7 +526,7 @@ ShellRoot {
               // move the node in the camera plane at its current depth
               var n = net.nodes[net.dragIdx];
               var pcur = net.pos(n, net.dragIdx);
-              var S = Math.min(net.width, net.height) * 1.02;
+              var S = Math.min(net.width, net.height) * 1.02 * net.zoom;
               var ux = dx / (S * pcur[3]);
               var uy = dy / (S * pcur[3]);
               var cy_ = Math.cos(net.yaw), sy_ = Math.sin(net.yaw);
@@ -559,6 +560,21 @@ ShellRoot {
             net.orbiting = false;
           }
           onExited: net.hoverIdx = -1
+          onWheel: wheel => {
+            net.idleTicks = 0;
+            var factor = wheel.angleDelta.y > 0 ? 1.12 : 1 / 1.12;
+            net.zoom = Math.max(0.35, Math.min(4.0, net.zoom * factor));
+            net.requestPaint();
+          }
+          onDoubleClicked: mouse => {
+            // double-click empty space: camera home
+            if (net.nodeAt(mouse.x, mouse.y) < 0) {
+              net.yaw = 0.55;
+              net.pitch = 0.30;
+              net.zoom = 1.0;
+              net.requestPaint();
+            }
+          }
         }
 
         onPaint: {
