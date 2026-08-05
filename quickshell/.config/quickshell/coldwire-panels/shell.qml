@@ -444,6 +444,10 @@ ShellRoot {
         property real pitch: 0.30
         property real zoom: 1.0
         property bool orbiting: false
+        property real velYaw: 0
+        property real velPitch: 0
+        property real accYaw: 0
+        property real accPitch: 0
         property real lastMx: 0
         property real lastMy: 0
         property int idleTicks: 999
@@ -455,6 +459,19 @@ ShellRoot {
           onTriggered: {
             net.t += 0.04;
             net.idleTicks++;
+            if (net.orbiting) {
+              // sample this tick's drag motion as the current fling velocity
+              net.velYaw = Math.max(-0.12, Math.min(0.12, net.accYaw));
+              net.velPitch = Math.max(-0.12, Math.min(0.12, net.accPitch));
+              net.accYaw = 0;
+              net.accPitch = 0;
+            } else if (Math.abs(net.velYaw) > 0.00015 || Math.abs(net.velPitch) > 0.00015) {
+              // released with motion: coast and decay
+              net.yaw += net.velYaw;
+              net.pitch = Math.max(-1.35, Math.min(1.35, net.pitch + net.velPitch));
+              net.velYaw *= 0.94;
+              net.velPitch *= 0.94;
+            }
             if (net.idleTicks > 75)      // ~5s untouched: resume ambient orbit
               net.yaw += 0.0016;
             if (net.links.length && Math.random() < 0.05)
@@ -510,6 +527,11 @@ ShellRoot {
             net.lastMy = mouse.y;
             net.dragIdx = net.nodeAt(mouse.x, mouse.y);
             net.orbiting = net.dragIdx < 0;
+            // grabbing the map catches any ongoing spin
+            net.velYaw = 0;
+            net.velPitch = 0;
+            net.accYaw = 0;
+            net.accPitch = 0;
           }
           onPositionChanged: mouse => {
             net.idleTicks = 0;
@@ -518,6 +540,8 @@ ShellRoot {
             if (net.orbiting) {
               net.yaw += dx * 0.008;
               net.pitch = Math.max(-1.35, Math.min(1.35, net.pitch + dy * 0.008));
+              net.accYaw += dx * 0.008;
+              net.accPitch += dy * 0.008;
               net.dragged = true;
               net.lastMx = mouse.x;
               net.lastMy = mouse.y;
