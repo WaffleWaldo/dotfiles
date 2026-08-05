@@ -465,12 +465,6 @@ ShellRoot {
               net.velPitch = Math.max(-0.12, Math.min(0.12, net.accPitch));
               net.accYaw = 0;
               net.accPitch = 0;
-            } else if (Math.abs(net.velYaw) > 0.00015 || Math.abs(net.velPitch) > 0.00015) {
-              // released with motion: coast and decay
-              net.yaw += net.velYaw;
-              net.pitch = Math.max(-1.35, Math.min(1.35, net.pitch + net.velPitch));
-              net.velYaw *= 0.94;
-              net.velPitch *= 0.94;
             }
             if (net.idleTicks > 75)      // ~5s untouched: resume ambient orbit
               net.yaw += 0.0016;
@@ -481,6 +475,21 @@ ShellRoot {
               if (net.pulses[i].p >= 1)
                 net.pulses.splice(i, 1);
             }
+            net.requestPaint();
+          }
+        }
+
+        FrameAnimation {
+          id: coastAnim
+          running: !net.orbiting && (Math.abs(net.velYaw) > 0.00015 || Math.abs(net.velPitch) > 0.00015)
+          onTriggered: {
+            // velocity/friction are tuned in 66ms-tick units; normalize to real frame time
+            var k = frameTime / 0.066;
+            net.yaw += net.velYaw * k;
+            net.pitch = Math.max(-1.35, Math.min(1.35, net.pitch + net.velPitch * k));
+            var f = Math.pow(0.94, k);
+            net.velYaw *= f;
+            net.velPitch *= f;
             net.requestPaint();
           }
         }
