@@ -710,10 +710,14 @@ ShellRoot {
         anchors.bottomMargin: 8
         renderStrategy: Canvas.Cooperative
         property real t: 0
-        property real level: 0          // smoothed loudness 0..1
+        property var targetSpec: []     // raw-ish spectrum from cava (60fps)
+        property var spec: []           // rendered spectrum, interpolated per frame
+        property real targetLevel: 0
+        property real level: 0
         property real lastSignal: 0
-        property var ripples: []        // {r, amp} expanding rings
+        property var ripples: []
         property real sinceRipple: 99
+        property real frameAcc: 0
         readonly property bool live: lastSignal > 0
         readonly property int rows: 46
         readonly property int cols: 150
@@ -727,42 +731,76 @@ ShellRoot {
               var vals = line.split(";").filter(s => s.length).map(Number);
               if (!vals.length)
                 return;
+              if (wave.targetSpec.length !== vals.length) {
+                wave.targetSpec = new Array(vals.length).fill(0);
+                wave.spec = new Array(vals.length).fill(0);
+              }
               var sum = 0, mx = 0;
               for (var i = 0; i < vals.length; i++) {
                 var v = Math.min(vals[i], 100) / 100;
+                wave.targetSpec[i] = v;
                 sum += v * v;
                 if (vals[i] > mx)
                   mx = vals[i];
               }
-              // hot sensitivity: RMS boosted hard, fast attack / slow release
-              var lvl = Math.min(Math.sqrt(sum / vals.length) * 3.2, 1);
-              wave.level = lvl > wave.level ? lvl : wave.level * 0.92;
+              wave.targetLevel = Math.min(Math.sqrt(sum / vals.length) * 3.4, 1);
               if (mx > 2)
-                wave.lastSignal = 30;
-              else if (wave.lastSignal > 0)
-                wave.lastSignal -= 0.35;
+                wave.lastSignal = 3.2;          // seconds of live-hold
             }
           }
         }
 
+        // one physics step; dt in seconds
+        function advance(dt) {
+          t += dt * 0.9;
+          if (lastSignal > 0 && targetLevel < 0.02)
+            lastSignal = Math.max(0, lastSignal - dt);
+          // spectrum: fast attack, slow release (dt-normalized)
+          var up = 1 - Math.pow(1 - 0.60, dt / 0.016);
+          var down = 1 - Math.pow(1 - 0.10, dt / 0.016);
+          for (var i = 0; i < spec.length; i++) {
+            var tg = targetSpec[i];
+            spec[i] += (tg - spec[i]) * (tg > spec[i] ? up : down);
+          }
+          // loudness with its own envelope
+          var lUp = 1 - Math.pow(1 - 0.70, dt / 0.016);
+          var lDown = 1 - Math.pow(1 - 0.06, dt / 0.016);
+          var beat = targetLevel - level > 0.10;   // onset before smoothing eats it
+          level += (targetLevel - level) * (targetLevel > level ? lUp : lDown);
+          // ripples: beats fire immediately (min 90ms apart), plus a slow pulse while loud
+          sinceRipple += dt;
+          if (live && ((beat && sinceRipple > 0.09) || (level > 0.12 && sinceRipple > 0.30))) {
+            ripples.push({ r: 0.02, amp: Math.min((beat ? targetLevel : level) * 1.35, 1) });
+            sinceRipple = 0;
+          }
+          for (var q = ripples.length - 1; q >= 0; q--) {
+            ripples[q].r += dt * 0.42;
+            ripples[q].amp *= Math.pow(0.32, dt);
+            if (ripples[q].amp < 0.04 || ripples[q].r > 1.5)
+              ripples.splice(q, 1);
+          }
+        }
+
         Timer {
+          // idle path: calm sea at 25fps
           interval: 40
-          running: true
+          running: !wave.live
           repeat: true
           onTriggered: {
-            wave.t += 0.035;
-            wave.sinceRipple += 0.04;
-            // drop a ring at the epicenter while audio plays
-            if (wave.live && wave.level > 0.10 && wave.sinceRipple > 0.24) {
-              wave.ripples.push({ r: 0.02, amp: Math.min(wave.level * 1.3, 1) });
-              wave.sinceRipple = 0;
-            }
-            for (var i = wave.ripples.length - 1; i >= 0; i--) {
-              wave.ripples[i].r += 0.016;
-              wave.ripples[i].amp *= 0.955;
-              if (wave.ripples[i].amp < 0.04 || wave.ripples[i].r > 1.5)
-                wave.ripples.splice(i, 1);
-            }
+            wave.advance(0.04);
+            wave.requestPaint();
+          }
+        }
+
+        FrameAnimation {
+          // live path: per-display-frame, skipped to ~70Hz to cap raster cost
+          running: wave.live
+          onTriggered: {
+            wave.frameAcc += frameTime;
+            if (wave.frameAcc < 0.013)
+              return;
+            wave.advance(wave.frameAcc);
+            wave.frameAcc = 0;
             wave.requestPaint();
           }
         }
@@ -772,32 +810,29 @@ ShellRoot {
           ctx.reset();
           var w = width, h = height;
           var horizon = h * 0.14;
+          var nSpec = spec.length || 64;
           var amberPts = [];
           var rip = ripples;
-          var lvl = level;
+          var lvl = Math.pow(level, 0.8);          // perceptual lift
           ctx.fillStyle = Qt.rgba(root.cInk.r, root.cInk.g, root.cInk.b, 1);
           for (var r = 0; r < rows; r++) {
-            var z = r / (rows - 1);                        // 0 far, 1 near
+            var z = r / (rows - 1);
             var ybase = horizon + Math.pow(z, 1.5) * h * 0.82;
             var spread = 0.60 + 0.50 * z;
-            var depthScale = 0.30 + 0.70 * z;              // px lift grows toward viewer
+            var depthScale = 0.30 + 0.70 * z;
             var rowGlow = 0.20 + 0.70 * Math.pow(z, 0.9);
             var sz = z < 0.35 ? 1 : 2;
             for (var c = 0; c < cols; c++) {
               var x01 = c / (cols - 1);
-              // radial distance from the plane's exact center (aspect-weighted)
               var dx = (x01 - 0.5) * 1.9;
               var dz = z - 0.5;
               var d = Math.sqrt(dx * dx + dz * dz);
-              // calm ambient swell
               var swell = 0.5 * Math.sin(x01 * 7.3 + t * 0.8 + z * 3.1)
                         + 0.3 * Math.sin(x01 * 13.7 - t * 1.2 + z * 1.7)
                         + 0.2 * Math.sin(x01 * 23.0 + t * 1.8 - z * 4.2);
-              var lift = (swell + 1) * 14;                 // gentle base sea
-              // the mountain: audio raises a sharp peak at dead center
+              var lift = (swell + 1) * 14;
               var mountain = lvl * Math.exp(-(d * d) / (0.045 * 0.045 * 2));
               lift += mountain * 260;
-              // expanding rings from the drop point
               var ringSum = 0;
               for (var q = 0; q < rip.length; q++) {
                 var rr = d - rip[q].r;
@@ -813,7 +848,6 @@ ShellRoot {
                 amberPts.push([sx, sy - 2, sz]);
             }
           }
-          // amber: the peak cap and the strongest ring crests
           ctx.globalAlpha = 0.95;
           ctx.fillStyle = Qt.rgba(root.cAmber.r, root.cAmber.g, root.cAmber.b, 1);
           for (var i = 0; i < amberPts.length; i++)
