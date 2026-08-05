@@ -727,27 +727,46 @@ ShellRoot {
         anchors.bottomMargin: 8
         renderStrategy: Canvas.Cooperative
         property real t: 0
-        property var targetSpec: []     // raw-ish spectrum from cava (60fps)
-        property var spec: []           // rendered spectrum, interpolated per frame
+        property var targetSpec: []
         property real targetLevel: 0
-        property real level: 0
         property real tgBass: 0
         property real tgMid: 0
         property real tgTreble: 0
         property real bass: 0
         property real mid: 0
         property real treble: 0
-        property real heave: 0          // slow envelope: sustained low end lifts the whole sea
+        property real heave: 0
+        property real lastSignal: 0
+        property var ripples: []
         property real sinceBass: 99
         property real sinceMid: 99
         property real sinceTreble: 99
-        property real lastSignal: 0
-        property var ripples: []
-        property real sinceRipple: 99
         property real frameAcc: 0
         readonly property bool live: lastSignal > 0
-        readonly property int rows: 46
-        readonly property int cols: 150
+        readonly property int rows: 54
+        readonly property int cols: 180
+
+        // ── continuous spectral path: 24 control points weaving far-left → near-right ──
+        readonly property int ctrlN: 24
+        property var ctrl: []          // rendered envelopes
+        property var tgCtrl: []        // targets from cava
+        property var pathX: []         // plane x (0..1) per control point
+        property var pathZ: []         // plane z (0..1) per control point
+
+        Component.onCompleted: {
+          var cx = [], cz = [], c0 = [], t0 = [];
+          for (var k = 0; k < ctrlN; k++) {
+            var u = k / (ctrlN - 1);
+            cx.push(0.06 + 0.88 * u);
+            cz.push(0.30 + 0.40 * u + 0.09 * Math.sin(u * 9.4));   // serpentine through the depth
+            c0.push(0);
+            t0.push(0);
+          }
+          pathX = cx;
+          pathZ = cz;
+          ctrl = c0;
+          tgCtrl = t0;
+        }
 
         Process {
           id: cavaProc
@@ -758,11 +777,9 @@ ShellRoot {
               var vals = line.split(";").filter(s => s.length).map(Number);
               if (!vals.length)
                 return;
-              if (wave.targetSpec.length !== vals.length) {
-                wave.targetSpec = new Array(vals.length).fill(0);
-                wave.spec = new Array(vals.length).fill(0);
-              }
               var n = vals.length;
+              if (wave.targetSpec.length !== n)
+                wave.targetSpec = new Array(n).fill(0);
               var bassEnd = Math.max(2, Math.round(n * 0.125));
               var midEnd = Math.round(n * 0.62);
               var sb = 0, sm = 0, st = 0, sum = 0, mx = 0;
@@ -781,25 +798,33 @@ ShellRoot {
               wave.tgMid = Math.min(Math.sqrt(sm / (midEnd - bassEnd)) * 3.2, 1);
               wave.tgTreble = Math.min(Math.sqrt(st / (n - midEnd)) * 3.6, 1);
               wave.targetLevel = Math.min(Math.sqrt(sum / n) * 3.4, 1);
+              // aggregate spectrum onto the control points (frequency → position)
+              for (var k = 0; k < wave.ctrlN; k++) {
+                var lo = Math.floor(k * n / wave.ctrlN);
+                var hi = Math.max(lo + 1, Math.floor((k + 1) * n / wave.ctrlN));
+                var s = 0;
+                for (var j = lo; j < hi; j++)
+                  s += wave.targetSpec[j] * wave.targetSpec[j];
+                var u = k / (wave.ctrlN - 1);
+                var boost = 2.6 + u * 1.0;                    // treble bins run quieter
+                wave.tgCtrl[k] = Math.min(Math.sqrt(s / (hi - lo)) * boost, 1);
+              }
               if (mx > 2)
-                wave.lastSignal = 3.2;          // seconds of live-hold
+                wave.lastSignal = 3.2;
             }
           }
         }
 
-        // one physics step; dt in seconds
         function advance(dt) {
           t += dt * 0.9;
           if (lastSignal > 0 && targetLevel < 0.02)
             lastSignal = Math.max(0, lastSignal - dt);
-          // spectrum: fast attack, slow release (dt-normalized)
           var up = 1 - Math.pow(1 - 0.60, dt / 0.016);
           var down = 1 - Math.pow(1 - 0.10, dt / 0.016);
-          for (var i = 0; i < spec.length; i++) {
-            var tg = targetSpec[i];
-            spec[i] += (tg - spec[i]) * (tg > spec[i] ? up : down);
+          for (var k = 0; k < ctrl.length; k++) {
+            var tg = tgCtrl[k];
+            ctrl[k] += (tg - ctrl[k]) * (tg > ctrl[k] ? up : down);
           }
-          // envelopes: fast attack, slow release, per band
           var lUp = 1 - Math.pow(1 - 0.70, dt / 0.016);
           var lDown = 1 - Math.pow(1 - 0.06, dt / 0.016);
           var beatBass = tgBass - bass > 0.11;
@@ -808,39 +833,56 @@ ShellRoot {
           bass += (tgBass - bass) * (tgBass > bass ? lUp : lDown);
           mid += (tgMid - mid) * (tgMid > mid ? lUp : lDown);
           treble += (tgTreble - treble) * (tgTreble > treble ? lUp : lDown);
-          level += (targetLevel - level) * (targetLevel > level ? lUp : lDown);
-          // heave: very slow envelope of sustained low end — the sea breathes with it
           var hUp = 1 - Math.pow(1 - 0.06, dt / 0.016);
           var hDown = 1 - Math.pow(1 - 0.015, dt / 0.016);
           heave += (bass - heave) * (bass > heave ? hUp : hDown);
-          // typed rings: bass = big/slow/wide, mid = standard, treble = fast/thin
+          // onsets per zone, but each ring is born at the exact frequency that hit:
+          // strongest-rising control point in the zone, character lerped by pitch
           sinceBass += dt;
           sinceMid += dt;
           sinceTreble += dt;
           if (live && ripples.length < 16) {
-            if ((beatBass && sinceBass > 0.14) || (bass > 0.30 && sinceBass > 0.55)) {
-              ripples.push({ r: 0.02, amp: Math.min(tgBass * 1.5, 1.2), spd: 0.30, wd: 0.040, ox: 0.18 });
-              sinceBass = 0;
-            }
-            if ((beatMid && sinceMid > 0.11) || (mid > 0.16 && sinceMid > 0.40)) {
-              ripples.push({ r: 0.02, amp: Math.min(tgMid * 1.15, 1), spd: 0.45, wd: 0.024, ox: 0.50 });
-              sinceMid = 0;
-            }
-            if (beatTreble && sinceTreble > 0.08) {
-              ripples.push({ r: 0.02, amp: Math.min(tgTreble * 0.8, 0.8), spd: 0.62, wd: 0.014, ox: 0.82 });
-              sinceTreble = 0;
-            }
+            spawnZone(0, Math.round(ctrlN * 0.33), beatBass, tgBass, 0.30, 0.14, 0.55, "b");
+            spawnZone(Math.round(ctrlN * 0.33), Math.round(ctrlN * 0.70), beatMid, tgMid, 0.16, 0.11, 0.40, "m");
+            spawnZone(Math.round(ctrlN * 0.70), ctrlN, beatTreble, tgTreble, 99, 0.08, 99, "t");
           }
           for (var q = ripples.length - 1; q >= 0; q--) {
             ripples[q].r += dt * ripples[q].spd;
             ripples[q].amp *= Math.pow(0.32, dt);
-            if (ripples[q].amp < 0.04 || ripples[q].r > 1.5)
+            if (ripples[q].amp < 0.04 || ripples[q].r > 1.6)
               ripples.splice(q, 1);
           }
         }
 
+        function spawnZone(lo, hi, beat, zoneTg, sustainTh, beatGap, sustainGap, zone) {
+          var since = zone === "b" ? sinceBass : (zone === "m" ? sinceMid : sinceTreble);
+          var fire = (beat && since > beatGap) || (zoneTg > sustainTh && since > sustainGap);
+          if (!fire)
+            return;
+          // origin: strongest-rising (or simply strongest) control point in zone
+          var best = lo, bestV = -1;
+          for (var k = lo; k < hi; k++) {
+            var rise = tgCtrl[k] - ctrl[k] + tgCtrl[k] * 0.35;
+            if (rise > bestV) {
+              bestV = rise;
+              best = k;
+            }
+          }
+          var u = best / (ctrlN - 1);
+          ripples.push({
+            r: 0.02,
+            amp: Math.min(zoneTg * (1.5 - u * 0.7), 1.2),
+            spd: 0.30 + u * 0.32,
+            wd: 0.040 - u * 0.026,
+            ox: pathX[best],
+            oz: pathZ[best]
+          });
+          if (zone === "b") sinceBass = 0;
+          else if (zone === "m") sinceMid = 0;
+          else sinceTreble = 0;
+        }
+
         Timer {
-          // idle path: calm sea at 25fps
           interval: 40
           running: !wave.live
           repeat: true
@@ -851,7 +893,6 @@ ShellRoot {
         }
 
         FrameAnimation {
-          // live path: per-display-frame, skipped to ~70Hz to cap raster cost
           running: wave.live
           onTriggered: {
             wave.frameAcc += frameTime;
@@ -868,15 +909,19 @@ ShellRoot {
           ctx.reset();
           var w = width, h = height;
           var horizon = h * 0.14;
-          var nSpec = spec.length || 64;
           var amberPts = [];
           var rip = ripples;
-          var eBass = Math.pow(bass, 0.8);
-          var eMid = Math.pow(mid, 0.8);
-          var eTreble = Math.pow(treble, 0.8);
-          var chop = 1 + treble * 2.4;             // hi-hats sharpen the surface texture
-          var heaveLift = 1 + heave * 0.9;         // sustained low end raises the whole sea
+          var nC = ctrl.length;
+          var chop = 1 + treble * 2.4;
+          var heaveLift = 1 + heave * 0.9;
+          var hs = h / 795;                      // lift budget scales with panel height
+          // per-control-point strength this frame
+          var cs = [];
+          for (var k = 0; k < nC; k++)
+            cs.push(Math.pow(ctrl[k], 0.8) * (1.05 - (k / (nC - 1)) * 0.55));
           ctx.fillStyle = Qt.rgba(root.cInk.r, root.cInk.g, root.cInk.b, 1);
+          var SIG = 0.085;                       // ridge width (world units)
+          var REJ = SIG * 3;
           for (var r = 0; r < rows; r++) {
             var z = r / (rows - 1);
             var ybase = horizon + Math.pow(z, 1.5) * h * 0.82;
@@ -884,40 +929,52 @@ ShellRoot {
             var depthScale = 0.30 + 0.70 * z;
             var rowGlow = 0.20 + 0.70 * Math.pow(z, 0.9);
             var sz = z < 0.35 ? 1 : 2;
+            // row-constant parts of control-point distance
+            var dzq = [];
+            for (var k = 0; k < nC; k++) {
+              var dzc = z - pathZ[k];
+              dzq.push(dzc * dzc);
+            }
             for (var c = 0; c < cols; c++) {
               var x01 = c / (cols - 1);
               var dz = z - 0.5;
               var swell = 0.5 * Math.sin(x01 * 7.3 + t * 0.8 + z * 3.1)
                         + 0.3 * Math.sin(x01 * 13.7 - t * 1.2 + z * 1.7)
                         + 0.2 * chop * Math.sin(x01 * 23.0 + t * 1.8 - z * 4.2);
-              var lift = (swell + 1) * 14 * heaveLift;
-              // three storm centers: bass left (wide/massive), mids center, treble right (tight/light)
-              var dbx = (x01 - 0.18) * 1.9;
-              var dmx = (x01 - 0.50) * 1.9;
-              var dtx = (x01 - 0.82) * 1.9;
-              var mountain = eBass * 1.05 * Math.exp(-(dbx * dbx + dz * dz) / (0.115 * 0.115 * 2))
-                           + eMid * 0.70 * Math.exp(-(dmx * dmx + dz * dz) / (0.075 * 0.075 * 2))
-                           + eTreble * 0.50 * Math.exp(-(dtx * dtx + dz * dz) / (0.055 * 0.055 * 2));
-              lift += mountain * 240;
-              // rings from each center cross the whole sheet as damped sinusoids —
-              // crest AND trough, so crossing rings genuinely interfere
+              var lift = (swell + 1) * 14 * hs * heaveLift;
+              // spectral ridge: every frequency has a place; energy peaks where its pitch lives
+              var ridge = 0;
+              for (var k = 0; k < nC; k++) {
+                if (cs[k] < 0.02)
+                  continue;
+                var dxw = (x01 - pathX[k]) * 1.9;
+                if (dxw > REJ || dxw < -REJ)
+                  continue;
+                ridge += cs[k] * Math.exp(-(dxw * dxw + dzq[k]) / (SIG * SIG * 2));
+              }
+              lift += ridge * 230 * hs;
               var ringSum = 0;
               for (var q = 0; q < rip.length; q++) {
                 var rp = rip[q];
                 var rdx = (x01 - rp.ox) * 1.9;
                 var pre = Math.abs(rdx) - rp.r;
                 if (pre > rp.wd * 4)
-                  continue;                       // cheap reject before sqrt
-                var rd = Math.sqrt(rdx * rdx + dz * dz);
+                  continue;
+                var rdz = z - rp.oz;
+                var rd = Math.sqrt(rdx * rdx + rdz * rdz);
                 var rr = rd - rp.r;
                 var wd = rp.wd;
                 ringSum += rp.amp * Math.cos(rr / wd * 1.8) * Math.exp(-(rr * rr) / (wd * wd * 4));
               }
-              lift += ringSum * 90;
+              lift += ringSum * 90 * hs;
               var sx = (x01 - 0.5) * spread * w * 1.30 + w / 2;
-              var sy = ybase - lift * depthScale;
-              var energy = mountain + Math.abs(ringSum) * 0.8;
-              ctx.globalAlpha = Math.min(rowGlow * (0.32 + 0.30 * (swell * 0.5 + 0.5) + 1.4 * energy), 1);
+              var l = lift * depthScale;
+              var headroom = ybase - 3;
+              if (l > headroom * 0.5)
+                l = headroom - 0.25 * headroom * headroom / l;
+              var sy = ybase - l;
+              var energy = ridge + Math.abs(ringSum) * 0.8;
+              ctx.globalAlpha = Math.min(rowGlow * (0.29 + 0.28 * (swell * 0.5 + 0.5) + 1.4 * energy), 1);
               ctx.fillRect(sx, sy, sz, sz);
               if (energy > 0.55)
                 amberPts.push([sx, sy - 2, sz]);
