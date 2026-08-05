@@ -703,6 +703,23 @@ ShellRoot {
         color: wave.live ? root.cAmber : root.cDim
       }
 
+      Repeater {
+        model: [
+          { label: "BASS", fx: 0.18 },
+          { label: "MID", fx: 0.50 },
+          { label: "TRB", fx: 0.82 }
+        ]
+        delegate: MicroLabel {
+          required property var modelData
+          x: parent.width * (0.5 + (modelData.fx - 0.5) * 1.10) - width / 2
+          anchors.bottom: parent.bottom
+          anchors.bottomMargin: 6
+          font.pixelSize: 8
+          text: modelData.label
+          opacity: 0.55
+        }
+      }
+
       Canvas {
         id: wave
         anchors.fill: parent
@@ -802,15 +819,15 @@ ShellRoot {
           sinceTreble += dt;
           if (live && ripples.length < 16) {
             if ((beatBass && sinceBass > 0.14) || (bass > 0.30 && sinceBass > 0.55)) {
-              ripples.push({ r: 0.02, amp: Math.min(tgBass * 1.5, 1.2), spd: 0.30, wd: 0.040 });
+              ripples.push({ r: 0.02, amp: Math.min(tgBass * 1.5, 1.2), spd: 0.30, wd: 0.040, ox: 0.18 });
               sinceBass = 0;
             }
             if ((beatMid && sinceMid > 0.11) || (mid > 0.16 && sinceMid > 0.40)) {
-              ripples.push({ r: 0.02, amp: Math.min(tgMid * 1.15, 1), spd: 0.45, wd: 0.024 });
+              ripples.push({ r: 0.02, amp: Math.min(tgMid * 1.15, 1), spd: 0.45, wd: 0.024, ox: 0.50 });
               sinceMid = 0;
             }
             if (beatTreble && sinceTreble > 0.08) {
-              ripples.push({ r: 0.02, amp: Math.min(tgTreble * 0.8, 0.8), spd: 0.62, wd: 0.014 });
+              ripples.push({ r: 0.02, amp: Math.min(tgTreble * 0.8, 0.8), spd: 0.62, wd: 0.014, ox: 0.82 });
               sinceTreble = 0;
             }
           }
@@ -854,7 +871,9 @@ ShellRoot {
           var nSpec = spec.length || 64;
           var amberPts = [];
           var rip = ripples;
-          var lvl = Math.pow(Math.min(0.75 * bass + 0.45 * mid, 1), 0.8);
+          var eBass = Math.pow(bass, 0.8);
+          var eMid = Math.pow(mid, 0.8);
+          var eTreble = Math.pow(treble, 0.8);
           var chop = 1 + treble * 2.4;             // hi-hats sharpen the surface texture
           var heaveLift = 1 + heave * 0.9;         // sustained low end raises the whole sea
           ctx.fillStyle = Qt.rgba(root.cInk.r, root.cInk.g, root.cInk.b, 1);
@@ -867,25 +886,37 @@ ShellRoot {
             var sz = z < 0.35 ? 1 : 2;
             for (var c = 0; c < cols; c++) {
               var x01 = c / (cols - 1);
-              var dx = (x01 - 0.5) * 1.9;
               var dz = z - 0.5;
-              var d = Math.sqrt(dx * dx + dz * dz);
               var swell = 0.5 * Math.sin(x01 * 7.3 + t * 0.8 + z * 3.1)
                         + 0.3 * Math.sin(x01 * 13.7 - t * 1.2 + z * 1.7)
                         + 0.2 * chop * Math.sin(x01 * 23.0 + t * 1.8 - z * 4.2);
               var lift = (swell + 1) * 14 * heaveLift;
-              var mountain = lvl * Math.exp(-(d * d) / (0.045 * 0.045 * 2));
-              lift += mountain * 260;
+              // three storm centers: bass left (wide/massive), mids center, treble right (tight/light)
+              var dbx = (x01 - 0.18) * 1.9;
+              var dmx = (x01 - 0.50) * 1.9;
+              var dtx = (x01 - 0.82) * 1.9;
+              var mountain = eBass * 1.05 * Math.exp(-(dbx * dbx + dz * dz) / (0.115 * 0.115 * 2))
+                           + eMid * 0.70 * Math.exp(-(dmx * dmx + dz * dz) / (0.075 * 0.075 * 2))
+                           + eTreble * 0.50 * Math.exp(-(dtx * dtx + dz * dz) / (0.055 * 0.055 * 2));
+              lift += mountain * 240;
+              // rings from each center cross the whole sheet as damped sinusoids —
+              // crest AND trough, so crossing rings genuinely interfere
               var ringSum = 0;
               for (var q = 0; q < rip.length; q++) {
-                var rr = d - rip[q].r;
-                var wd = rip[q].wd;
-                ringSum += rip[q].amp * Math.exp(-(rr * rr) / (wd * wd * 2));
+                var rp = rip[q];
+                var rdx = (x01 - rp.ox) * 1.9;
+                var pre = Math.abs(rdx) - rp.r;
+                if (pre > rp.wd * 4)
+                  continue;                       // cheap reject before sqrt
+                var rd = Math.sqrt(rdx * rdx + dz * dz);
+                var rr = rd - rp.r;
+                var wd = rp.wd;
+                ringSum += rp.amp * Math.cos(rr / wd * 1.8) * Math.exp(-(rr * rr) / (wd * wd * 4));
               }
-              lift += ringSum * 95;
+              lift += ringSum * 90;
               var sx = (x01 - 0.5) * spread * w * 1.30 + w / 2;
               var sy = ybase - lift * depthScale;
-              var energy = mountain + ringSum * 0.8;
+              var energy = mountain + Math.abs(ringSum) * 0.8;
               ctx.globalAlpha = Math.min(rowGlow * (0.32 + 0.30 * (swell * 0.5 + 0.5) + 1.4 * energy), 1);
               ctx.fillRect(sx, sy, sz, sz);
               if (energy > 0.55)
