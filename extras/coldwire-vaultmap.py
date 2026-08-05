@@ -67,9 +67,9 @@ remap = {old: new for new, old in enumerate(keep)}
 edges = [(remap[a], remap[b]) for a, b in edges if a in remap and b in remap]
 n = len(keep)
 
-# force layout (seeded for stability run-to-run)
+# 3D force layout (seeded for stability run-to-run)
 rng = np.random.default_rng(31)
-pos = rng.random((n, 2)) * 0.8 + 0.1
+pos = rng.random((n, 3)) * 0.8 + 0.1
 E = np.array(edges) if edges else np.zeros((0, 2), dtype=int)
 for it in range(300):
     disp = np.zeros_like(pos)
@@ -83,7 +83,7 @@ for it in range(300):
         pull = d * 1.6
         np.add.at(disp, E[:, 0], -pull)
         np.add.at(disp, E[:, 1], pull)
-    disp += (np.array([0.5, 0.5]) - pos) * 0.02  # gentle centering
+    disp += (np.array([0.5, 0.5, 0.5]) - pos) * 0.02  # gentle centering
     step = 0.028 * (1 - it / 300) + 0.002
     length = np.sqrt((disp ** 2).sum(-1, keepdims=True)) + 1e-9
     pos += disp / length * np.minimum(length, step)
@@ -104,6 +104,7 @@ out = {
             "p": notes[keys[old]]["path"],
             "x": round(float(pos[remap[old]][0]), 4),
             "y": round(float(pos[remap[old]][1]), 4),
+            "z": round(float(pos[remap[old]][2]), 4),
             "d": deg[old],
             "a": 1 if deg[old] >= hub_cut else 0,
         }

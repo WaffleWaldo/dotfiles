@@ -430,15 +430,22 @@ ShellRoot {
         anchors.fill: parent
         anchors.topMargin: 30
         anchors.bottomMargin: 10
+        renderStrategy: Canvas.Cooperative
         property real t: 0
         property var nodes: []
         property var links: []
         property var pulses: []
+        property var nbrs: ({})
         property int hoverIdx: -1
         property int dragIdx: -1
         property bool dragged: false
-        property var nbrs: ({})
-        renderStrategy: Canvas.Cooperative
+        // ── 3D camera ──
+        property real yaw: 0.55
+        property real pitch: 0.30
+        property bool orbiting: false
+        property real lastMx: 0
+        property real lastMy: 0
+        property int idleTicks: 999
 
         Timer {
           interval: 66
@@ -446,6 +453,9 @@ ShellRoot {
           repeat: true
           onTriggered: {
             net.t += 0.04;
+            net.idleTicks++;
+            if (net.idleTicks > 75)      // ~5s untouched: resume ambient orbit
+              net.yaw += 0.0016;
             if (net.links.length && Math.random() < 0.05)
               net.pulses.push({ link: Math.floor(Math.random() * net.links.length), p: 0 });
             for (var i = net.pulses.length - 1; i >= 0; i--) {
@@ -457,17 +467,24 @@ ShellRoot {
           }
         }
 
+        // project one node through the current camera; returns [sx, sy, depth, perspective]
         function pos(n, i) {
-          if (i === dragIdx)
-            return [n.x * width, n.y * height];
-          return [
-            (n.x + 0.010 * Math.sin(t * (0.5 + (i % 7) * 0.09) + i)) * width,
-            (n.y + 0.010 * Math.cos(t * (0.4 + (i % 5) * 0.11) + i * 1.7)) * height
-          ];
+          var wx = n.x - 0.5 + 0.008 * Math.sin(t * (0.5 + (i % 7) * 0.09) + i);
+          var wy = n.y - 0.5 + 0.008 * Math.cos(t * (0.4 + (i % 5) * 0.11) + i * 1.7);
+          var wz = (n.z !== undefined ? n.z : 0.5) - 0.5 + 0.008 * Math.sin(t * 0.45 + i * 2.3);
+          var cy_ = Math.cos(yaw), sy_ = Math.sin(yaw);
+          var cp_ = Math.cos(pitch), sp_ = Math.sin(pitch);
+          var x1 = wx * cy_ + wz * sy_;
+          var z1 = -wx * sy_ + wz * cy_;
+          var y1 = wy * cp_ - z1 * sp_;
+          var z2 = wy * sp_ + z1 * cp_;
+          var S = Math.min(width, height) * 1.02;
+          var per = 1 / (1 + z2 * 0.65);
+          return [width / 2 + x1 * S * per, height / 2 + y1 * S * per, z2, per];
         }
 
         function nodeAt(mx, my) {
-          var best = -1, bestD = 14 * 14;
+          var best = -1, bestD = 15 * 15;
           for (var i = 0; i < nodes.length; i++) {
             var p = pos(nodes[i], i);
             var dx = p[0] - mx, dy = p[1] - my;
@@ -483,13 +500,48 @@ ShellRoot {
         MouseArea {
           anchors.fill: parent
           hoverEnabled: true
-          cursorShape: net.hoverIdx >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
+          cursorShape: net.hoverIdx >= 0 ? Qt.PointingHandCursor
+                       : (net.orbiting ? Qt.ClosedHandCursor : Qt.OpenHandCursor)
+          onPressed: mouse => {
+            net.idleTicks = 0;
+            net.dragged = false;
+            net.lastMx = mouse.x;
+            net.lastMy = mouse.y;
+            net.dragIdx = net.nodeAt(mouse.x, mouse.y);
+            net.orbiting = net.dragIdx < 0;
+          }
           onPositionChanged: mouse => {
-            if (net.dragIdx >= 0) {
-              net.nodes[net.dragIdx].x = Math.max(0.02, Math.min(0.98, mouse.x / net.width));
-              net.nodes[net.dragIdx].y = Math.max(0.02, Math.min(0.98, mouse.y / net.height));
+            net.idleTicks = 0;
+            var dx = mouse.x - net.lastMx;
+            var dy = mouse.y - net.lastMy;
+            if (net.orbiting) {
+              net.yaw += dx * 0.008;
+              net.pitch = Math.max(-1.35, Math.min(1.35, net.pitch + dy * 0.008));
               net.dragged = true;
-              net.requestPaint();   // repaint at mouse rate, not ambient tick rate
+              net.lastMx = mouse.x;
+              net.lastMy = mouse.y;
+              net.requestPaint();
+            } else if (net.dragIdx >= 0) {
+              // move the node in the camera plane at its current depth
+              var n = net.nodes[net.dragIdx];
+              var pcur = net.pos(n, net.dragIdx);
+              var S = Math.min(net.width, net.height) * 1.02;
+              var ux = dx / (S * pcur[3]);
+              var uy = dy / (S * pcur[3]);
+              var cy_ = Math.cos(net.yaw), sy_ = Math.sin(net.yaw);
+              var cp_ = Math.cos(net.pitch), sp_ = Math.sin(net.pitch);
+              // inverse pitch, then inverse yaw, applied to (ux, uy, 0)
+              var vy = uy * cp_;
+              var vz = uy * sp_;
+              var vx = ux * cy_ - vz * sy_;
+              var vz2 = ux * sy_ + vz * cy_;
+              n.x = Math.max(0.02, Math.min(0.98, n.x + vx));
+              n.y = Math.max(0.02, Math.min(0.98, n.y + vy));
+              n.z = Math.max(0.02, Math.min(0.98, (n.z !== undefined ? n.z : 0.5) + vz2));
+              net.dragged = true;
+              net.lastMx = mouse.x;
+              net.lastMy = mouse.y;
+              net.requestPaint();
             } else {
               var h = net.nodeAt(mouse.x, mouse.y);
               if (h !== net.hoverIdx) {
@@ -498,17 +550,13 @@ ShellRoot {
               }
             }
           }
-          onPressed: mouse => {
-            net.dragIdx = net.nodeAt(mouse.x, mouse.y);
-            net.dragged = false;
-          }
           onReleased: {
             if (net.dragIdx >= 0 && !net.dragged) {
-              // click: open the note in Obsidian
               var n = net.nodes[net.dragIdx];
               Qt.openUrlExternally("obsidian://open?vault=brain&file=" + encodeURIComponent(n.p));
             }
             net.dragIdx = -1;
+            net.orbiting = false;
           }
           onExited: net.hoverIdx = -1
         }
@@ -522,15 +570,17 @@ ShellRoot {
           for (var i = 0; i < nodes.length; i++)
             pts.push(pos(nodes[i], i));
           var focusIdx = dragIdx >= 0 ? dragIdx : hoverIdx;
-          // links
+          // links, depth-faded (near links brighter)
           for (var l = 0; l < links.length; l++) {
             var la = links[l][0], lb = links[l][1];
             var a = pts[la], b = pts[lb];
+            var depth = (a[2] + b[2]) / 2;              // -0.9 near .. 0.9 far? (sign: +z2 = away)
+            var depthA = 0.10 + 0.14 * (1 - (depth + 0.9) / 1.8);
             var lit = focusIdx >= 0 && (la === focusIdx || lb === focusIdx);
             if (lit) {
               ctx.strokeStyle = Qt.rgba(root.cAmber.r, root.cAmber.g, root.cAmber.b, 0.55);
             } else {
-              ctx.strokeStyle = Qt.rgba(root.cInk.r, root.cInk.g, root.cInk.b, focusIdx >= 0 ? 0.08 : 0.15);
+              ctx.strokeStyle = Qt.rgba(root.cInk.r, root.cInk.g, root.cInk.b, focusIdx >= 0 ? depthA * 0.5 : depthA);
             }
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -546,15 +596,22 @@ ShellRoot {
             ctx.fillRect(a2[0] + (b2[0] - a2[0]) * pulses[p].p - 1.5,
                          a2[1] + (b2[1] - a2[1]) * pulses[p].p - 1.5, 3, 3);
           }
-          // nodes
+          // nodes far -> near so close ones draw on top
+          var order = [];
+          for (var i = 0; i < nodes.length; i++)
+            order.push(i);
+          order.sort(function (u, v) { return pts[v][2] - pts[u][2]; });
           ctx.font = "8px \"" + root.mono + "\"";
-          for (var i = 0; i < nodes.length; i++) {
+          for (var oi = 0; oi < order.length; oi++) {
+            var i = order[oi];
             var n = nodes[i];
-            var sz = 2 + Math.min(n.d * 0.4, 5);
+            var per = pts[i][3];
+            var sz = (2 + Math.min(n.d * 0.4, 5)) * per;
             var isFocus = i === focusIdx;
             var neighbor = focusIdx >= 0 && !isFocus && nbrs[focusIdx] !== undefined && nbrs[focusIdx][i] === true;
+            var depthGlow = 0.35 + 0.65 * (1 - (pts[i][2] + 0.9) / 1.8);
             var c = n.a ? root.cAmber : (n.d >= 4 ? root.cBright : root.cDim);
-            var alpha = focusIdx >= 0 && !isFocus && !neighbor ? 0.30 : (n.a ? 1 : 0.85);
+            var alpha = focusIdx >= 0 && !isFocus && !neighbor ? 0.25 : (n.a ? 1 : 0.85) * Math.min(depthGlow + 0.25, 1);
             ctx.fillStyle = Qt.rgba(c.r, c.g, c.b, alpha);
             ctx.fillRect(pts[i][0] - sz / 2, pts[i][1] - sz / 2, sz, sz);
             if (isFocus) {
@@ -565,7 +622,7 @@ ShellRoot {
             if (isFocus || neighbor || (focusIdx < 0 && n.a)) {
               ctx.fillStyle = isFocus
                 ? Qt.rgba(root.cBright.r, root.cBright.g, root.cBright.b, 1)
-                : Qt.rgba(root.cDim.r, root.cDim.g, root.cDim.b, 0.85);
+                : Qt.rgba(root.cDim.r, root.cDim.g, root.cDim.b, 0.6 + 0.3 * depthGlow);
               ctx.fillText(n.n.length > 24 ? n.n.slice(0, 23) + "…" : n.n,
                            pts[i][0] + sz / 2 + 5, pts[i][1] + 3);
             }
