@@ -806,7 +806,7 @@ ShellRoot {
                 for (var j = lo; j < hi; j++)
                   s += wave.targetSpec[j] * wave.targetSpec[j];
                 var u = k / (wave.ctrlN - 1);
-                var boost = 2.6 + u * 1.0;                    // treble bins run quieter
+                var boost = 2.0 + u * 0.9;                    // treble bins run quieter
                 wave.tgCtrl[k] = Math.min(Math.sqrt(s / (hi - lo)) * boost, 1);
               }
               if (mx > 2)
@@ -922,7 +922,7 @@ ShellRoot {
           var heaveLift = 1 + heave * 0.9;
           var cs = [];
           for (var k = 0; k < nC; k++)
-            cs.push(Math.pow(ctrl[k], 0.8) * (1.05 - (k / (nC - 1)) * 0.55));
+            cs.push(Math.pow(ctrl[k], 1.25) * (1.05 - (k / (nC - 1)) * 0.55));
           var SIG = 0.085, REJ = SIG * 3, REJ2 = REJ * REJ;
           // swell trig decomposed: sin(fx*x + ft*t + fz*z) via per-col/per-row tables
           var FX = [7.3, 13.7, 23.0], FT = [0.8, -1.2, 1.8], FZ = [3.1, 1.7, -4.2];
@@ -998,7 +998,12 @@ ShellRoot {
               }
               lift += ringSum * 90 * hs;
               var sx = (xBase + c * xStep) | 0;
-              var sy = (ybase - lift * depthScale) | 0;
+              var pl = lift * depthScale;
+              if (pl > 0) {
+                var avail = ybase - 6;      // headroom to the canvas top
+                pl = avail * pl / (pl + avail);
+              }
+              var sy = (ybase - pl) | 0;
               if (sx < 0 || sy < 0 || sx > W - 2 || sy > H - 2)
                 continue;
               var energy = ridge + Math.abs(ringSum) * 0.8;
