@@ -896,7 +896,7 @@ ShellRoot {
           running: wave.live
           onTriggered: {
             wave.frameAcc += frameTime;
-            if (wave.frameAcc < 0.013)
+            if (wave.frameAcc < 0.0155)
               return;
             wave.advance(wave.frameAcc);
             wave.frameAcc = 0;
@@ -904,77 +904,106 @@ ShellRoot {
           }
         }
 
+        property var img: null
+
         onPaint: {
           var ctx = getContext("2d");
+          var W = Math.floor(width), H = Math.floor(height);
+          if (W <= 0 || H <= 0)
+            return;
           ctx.reset();
-          var w = width, h = height;
-          var horizon = h * 0.14;
           var amberPts = [];
+          ctx.fillStyle = Qt.rgba(root.cInk.r, root.cInk.g, root.cInk.b, 1);
+          var horizon = H * 0.14;
+          var hs = H / 795;                      // lift budget scales with panel height
           var rip = ripples;
           var nC = ctrl.length;
           var chop = 1 + treble * 2.4;
           var heaveLift = 1 + heave * 0.9;
-          var hs = h / 795;                      // lift budget scales with panel height
-          // per-control-point strength this frame
           var cs = [];
           for (var k = 0; k < nC; k++)
             cs.push(Math.pow(ctrl[k], 0.8) * (1.05 - (k / (nC - 1)) * 0.55));
-          ctx.fillStyle = Qt.rgba(root.cInk.r, root.cInk.g, root.cInk.b, 1);
-          var SIG = 0.085;                       // ridge width (world units)
-          var REJ = SIG * 3;
+          var SIG = 0.085, REJ = SIG * 3, REJ2 = REJ * REJ;
+          // swell trig decomposed: sin(fx*x + ft*t + fz*z) via per-col/per-row tables
+          var FX = [7.3, 13.7, 23.0], FT = [0.8, -1.2, 1.8], FZ = [3.1, 1.7, -4.2];
+          var WT = [0.5, 0.3, 0.2 * chop];
+          var colS = [], colC = [];
+          for (var wv = 0; wv < 3; wv++) {
+            var sArr = new Float64Array(cols), cArr = new Float64Array(cols);
+            for (var c = 0; c < cols; c++) {
+              var a = FX[wv] * (c / (cols - 1)) + FT[wv] * t;
+              sArr[c] = Math.sin(a);
+              cArr[c] = Math.cos(a);
+            }
+            colS.push(sArr);
+            colC.push(cArr);
+          }
+          var inkR = 200, inkG = 200, inkB = 200;   // #C8C8C8
           for (var r = 0; r < rows; r++) {
             var z = r / (rows - 1);
-            var ybase = horizon + Math.pow(z, 1.5) * h * 0.82;
+            var ybase = horizon + Math.pow(z, 1.5) * H * 0.82;
             var spread = 0.60 + 0.50 * z;
             var depthScale = 0.30 + 0.70 * z;
             var rowGlow = 0.20 + 0.70 * Math.pow(z, 0.9);
             var sz = z < 0.35 ? 1 : 2;
-            // row-constant parts of control-point distance
-            var dzq = [];
-            for (var k = 0; k < nC; k++) {
-              var dzc = z - pathZ[k];
-              dzq.push(dzc * dzc);
+            // row trig
+            var rs = [], rc = [];
+            for (var wv = 0; wv < 3; wv++) {
+              rs.push(Math.sin(FZ[wv] * z));
+              rc.push(Math.cos(FZ[wv] * z));
             }
+            // row-surviving control points
+            var rowK = [];
+            for (var k = 0; k < nC; k++) {
+              if (cs[k] < 0.02)
+                continue;
+              var dzc = z - pathZ[k];
+              var q2 = dzc * dzc;
+              if (q2 < REJ2)
+                rowK.push([pathX[k], q2, cs[k]]);
+            }
+            // row-surviving rings
+            var rowR = [];
+            for (var q = 0; q < rip.length; q++) {
+              var rp = rip[q];
+              var rdz = z - rp.oz;
+              if (Math.abs(rdz) <= rp.r + rp.wd * 4)
+                rowR.push([rp.ox, rdz * rdz, rp.r, rp.wd, rp.amp]);
+            }
+            var xBase = W / 2 - 0.5 * spread * W * 1.30;
+            var xStep = spread * W * 1.30 / (cols - 1);
             for (var c = 0; c < cols; c++) {
               var x01 = c / (cols - 1);
-              var dz = z - 0.5;
-              var swell = 0.5 * Math.sin(x01 * 7.3 + t * 0.8 + z * 3.1)
-                        + 0.3 * Math.sin(x01 * 13.7 - t * 1.2 + z * 1.7)
-                        + 0.2 * chop * Math.sin(x01 * 23.0 + t * 1.8 - z * 4.2);
+              var swell = WT[0] * (colS[0][c] * rc[0] + colC[0][c] * rs[0])
+                        + WT[1] * (colS[1][c] * rc[1] + colC[1][c] * rs[1])
+                        + WT[2] * (colS[2][c] * rc[2] + colC[2][c] * rs[2]);
               var lift = (swell + 1) * 14 * hs * heaveLift;
-              // spectral ridge: every frequency has a place; energy peaks where its pitch lives
               var ridge = 0;
-              for (var k = 0; k < nC; k++) {
-                if (cs[k] < 0.02)
-                  continue;
-                var dxw = (x01 - pathX[k]) * 1.9;
+              for (var k = 0; k < rowK.length; k++) {
+                var dxw = (x01 - rowK[k][0]) * 1.9;
                 if (dxw > REJ || dxw < -REJ)
                   continue;
-                ridge += cs[k] * Math.exp(-(dxw * dxw + dzq[k]) / (SIG * SIG * 2));
+                ridge += rowK[k][2] * Math.exp(-(dxw * dxw + rowK[k][1]) / (SIG * SIG * 2));
               }
               lift += ridge * 230 * hs;
               var ringSum = 0;
-              for (var q = 0; q < rip.length; q++) {
-                var rp = rip[q];
-                var rdx = (x01 - rp.ox) * 1.9;
-                var pre = Math.abs(rdx) - rp.r;
-                if (pre > rp.wd * 4)
+              for (var q = 0; q < rowR.length; q++) {
+                var rg = rowR[q];
+                var rdx = (x01 - rg[0]) * 1.9;
+                if (Math.abs(rdx) - rg[2] > rg[3] * 4)
                   continue;
-                var rdz = z - rp.oz;
-                var rd = Math.sqrt(rdx * rdx + rdz * rdz);
-                var rr = rd - rp.r;
-                var wd = rp.wd;
-                ringSum += rp.amp * Math.cos(rr / wd * 1.8) * Math.exp(-(rr * rr) / (wd * wd * 4));
+                var rd = Math.sqrt(rdx * rdx + rg[1]);
+                var rr = rd - rg[2];
+                ringSum += rg[4] * Math.cos(rr / rg[3] * 1.8) * Math.exp(-(rr * rr) / (rg[3] * rg[3] * 4));
               }
               lift += ringSum * 90 * hs;
-              var sx = (x01 - 0.5) * spread * w * 1.30 + w / 2;
-              var l = lift * depthScale;
-              var headroom = ybase - 3;
-              if (l > headroom * 0.5)
-                l = headroom - 0.25 * headroom * headroom / l;
-              var sy = ybase - l;
+              var sx = (xBase + c * xStep) | 0;
+              var sy = (ybase - lift * depthScale) | 0;
+              if (sx < 0 || sy < 0 || sx > W - 2 || sy > H - 2)
+                continue;
               var energy = ridge + Math.abs(ringSum) * 0.8;
-              ctx.globalAlpha = Math.min(rowGlow * (0.29 + 0.28 * (swell * 0.5 + 0.5) + 1.4 * energy), 1);
+              var bright = Math.min(rowGlow * (0.32 + 0.30 * (swell * 0.5 + 0.5) + 1.4 * energy), 1);
+              ctx.globalAlpha = bright;
               ctx.fillRect(sx, sy, sz, sz);
               if (energy > 0.55)
                 amberPts.push([sx, sy - 2, sz]);
