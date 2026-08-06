@@ -842,9 +842,10 @@ ShellRoot {
           sinceMid += dt;
           sinceTreble += dt;
           if (live && ripples.length < 16) {
-            spawnZone(0, Math.round(ctrlN * 0.33), beatBass, tgBass, 0.30, 0.14, 0.55, "b");
-            spawnZone(Math.round(ctrlN * 0.33), Math.round(ctrlN * 0.70), beatMid, tgMid, 0.16, 0.11, 0.40, "m");
-            spawnZone(Math.round(ctrlN * 0.70), ctrlN, beatTreble, tgTreble, 99, 0.08, 99, "t");
+            // change makes rings; sustained level only holds the mound + heave
+            spawnZone(0, Math.round(ctrlN * 0.33), beatBass, tgBass, 0.14, "b");
+            spawnZone(Math.round(ctrlN * 0.33), Math.round(ctrlN * 0.70), beatMid, tgMid, 0.11, "m");
+            spawnZone(Math.round(ctrlN * 0.70), ctrlN, beatTreble, tgTreble, 0.08, "t");
           }
           for (var q = ripples.length - 1; q >= 0; q--) {
             ripples[q].r += dt * ripples[q].spd;
@@ -854,10 +855,9 @@ ShellRoot {
           }
         }
 
-        function spawnZone(lo, hi, beat, zoneTg, sustainTh, beatGap, sustainGap, zone) {
+        function spawnZone(lo, hi, beat, zoneTg, beatGap, zone) {
           var since = zone === "b" ? sinceBass : (zone === "m" ? sinceMid : sinceTreble);
-          var fire = (beat && since > beatGap) || (zoneTg > sustainTh && since > sustainGap);
-          if (!fire)
+          if (!(beat && since > beatGap))
             return;
           // origin: strongest-rising (or simply strongest) control point in zone
           var best = lo, bestV = -1;
