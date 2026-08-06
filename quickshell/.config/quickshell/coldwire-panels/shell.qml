@@ -806,7 +806,7 @@ ShellRoot {
                 for (var j = lo; j < hi; j++)
                   s += wave.targetSpec[j] * wave.targetSpec[j];
                 var u = k / (wave.ctrlN - 1);
-                var boost = 2.0 + u * 0.9;                    // treble bins run quieter
+                var boost = 2.3 + u * 0.9;                    // treble bins run quieter
                 wave.tgCtrl[k] = Math.min(Math.sqrt(s / (hi - lo)) * boost, 1);
               }
               if (mx > 2)
@@ -827,9 +827,9 @@ ShellRoot {
           }
           var lUp = 1 - Math.pow(1 - 0.70, dt / 0.016);
           var lDown = 1 - Math.pow(1 - 0.06, dt / 0.016);
-          var beatBass = tgBass - bass > 0.11;
-          var beatMid = tgMid - mid > 0.12;
-          var beatTreble = tgTreble - treble > 0.13;
+          var beatBass = tgBass - bass > 0.08;
+          var beatMid = tgMid - mid > 0.09;
+          var beatTreble = tgTreble - treble > 0.10;
           bass += (tgBass - bass) * (tgBass > bass ? lUp : lDown);
           mid += (tgMid - mid) * (tgMid > mid ? lUp : lDown);
           treble += (tgTreble - treble) * (tgTreble > treble ? lUp : lDown);
@@ -843,8 +843,8 @@ ShellRoot {
           sinceTreble += dt;
           if (live && ripples.length < 16) {
             // change makes rings; sustained level only holds the mound + heave
-            spawnZone(0, Math.round(ctrlN * 0.33), beatBass, tgBass, 0.14, "b");
-            spawnZone(Math.round(ctrlN * 0.33), Math.round(ctrlN * 0.70), beatMid, tgMid, 0.11, "m");
+            spawnZone(0, Math.round(ctrlN * 0.33), beatBass, tgBass, 0.12, "b");
+            spawnZone(Math.round(ctrlN * 0.33), Math.round(ctrlN * 0.70), beatMid, tgMid, 0.10, "m");
             spawnZone(Math.round(ctrlN * 0.70), ctrlN, beatTreble, tgTreble, 0.08, "t");
           }
           for (var q = ripples.length - 1; q >= 0; q--) {
@@ -922,7 +922,7 @@ ShellRoot {
           var heaveLift = 1 + heave * 0.9;
           var cs = [];
           for (var k = 0; k < nC; k++)
-            cs.push(Math.pow(ctrl[k], 1.25) * (1.05 - (k / (nC - 1)) * 0.55));
+            cs.push(Math.pow(ctrl[k], 1.15) * (1.05 - (k / (nC - 1)) * 0.55));
           var SIG = 0.085, REJ = SIG * 3, REJ2 = REJ * REJ;
           // swell trig decomposed: sin(fx*x + ft*t + fz*z) via per-col/per-row tables
           var FX = [7.3, 13.7, 23.0], FT = [0.8, -1.2, 1.8], FZ = [3.1, 1.7, -4.2];
