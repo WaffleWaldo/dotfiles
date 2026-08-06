@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# coldwire-demo [output.mp4] — record a guided tour of the Coldwire deck.
+# Start your music first (the audio tap performs), then run this.
+set -u
+
+command -v wf-recorder >/dev/null || {
+  echo "wf-recorder not installed (sudo pacman -S wf-recorder)"; exit 1; }
+
+OUT="${1:-$HOME/Videos/coldwire-demo-$(date +%Y%m%d-%H%M%S).mp4}"
+
+wid() { niri msg --json windows | python3 -c "
+import json,sys
+t = '$1'
+for w in json.load(sys.stdin):
+    if (w.get('title') or '') == t: print(w['id']); break"; }
+
+CLOCK=$(wid coldwire-clock); MESH=$(wid coldwire-mesh)
+STATS=$(wid coldwire-stats); WAVE=$(wid coldwire-wave)
+NET=$(wid coldwire-net);     BTOP=$(wid coldwire-btop)
+# main terminal: the non-btop foot on the deck workspace
+DECKWS=$(niri msg --json windows | python3 -c "
+import json,sys
+for w in json.load(sys.stdin):
+    if (w.get('title') or '') == 'coldwire-clock': print(w['workspace_id']); break")
+MAIN=$(niri msg --json windows | python3 -c "
+import json,sys
+for w in json.load(sys.stdin):
+    if w['app_id']=='foot' and w['workspace_id']==$DECKWS and 'coldwire-btop' not in (w.get('title') or ''):
+        print(w['id']); break")
+
+[ -z "$CLOCK" ] && { echo "deck not found — run coldwire-deck first"; exit 1; }
+
+go() { niri msg action focus-window --id "$1" >/dev/null 2>&1; }
+
+# home position before the take
+go "$CLOCK"; sleep 0.5; [ -n "$MAIN" ] && go "$MAIN"; sleep 1
+
+echo "recording -> $OUT"
+wf-recorder -f "$OUT" -c libx264 -p preset=veryfast -p crf=20 >/dev/null 2>&1 &
+REC=$!
+sleep 1.5
+
+# ── the tour ──
+sleep 3                                   # 1. home: deck at rest, ocean live below
+if [ -n "$MAIN" ] && command -v wtype >/dev/null; then
+  wtype -d 55 "clear; fastfetch"          # 2. live keystrokes in the main terminal
+  sleep 0.4
+  wtype -k Return
+  sleep 4
+fi
+go "$CLOCK"; sleep 2.5                    # 3. the rail, panel by panel
+go "$MESH";  sleep 2.5
+go "$STATS"; sleep 2.5
+go "$WAVE";  sleep 2                      # 4. the audio tap (your music performs)
+notify-send -u low -t 3500 "COLDWIRE // DEMO" "All systems nominal" 2>/dev/null
+sleep 5
+[ -n "$BTOP" ] && { go "$BTOP"; sleep 4; }   # 5. btop
+if [ -n "$NET" ]; then                    # 6. finale: strip scrolls to the vault map,
+  go "$NET"; sleep 9                      #    auto-orbit takes over while we hold
+fi
+go "$CLOCK"; sleep 2                      # 7. home again
+[ -n "$MAIN" ] && go "$MAIN"; sleep 2
+
+kill -INT $REC 2>/dev/null                # clean finalize
+wait $REC 2>/dev/null
+echo "done: $OUT"
