@@ -17,7 +17,8 @@
         "iconMode": "tabler",
         "ignoreMouseInput": false,
         "overviewLayer": false,
-        "pinnedApps": [],
+        "pinnedApps": [
+        ],
         "position": "center",
         "screenshotAnnotationTool": "",
         "showCategories": true,
@@ -27,7 +28,8 @@
         "viewMode": "list"
     },
     "audio": {
-        "mprisBlacklist": [],
+        "mprisBlacklist": [
+        ],
         "preferredPlayer": "",
         "spectrumFrameRate": 30,
         "spectrumMirrored": true,
@@ -57,7 +59,8 @@
         "middleClickAction": "none",
         "middleClickCommand": "",
         "middleClickFollowMouse": false,
-        "monitors": [],
+        "monitors": [
+        ],
         "mouseWheelAction": "none",
         "mouseWheelWrap": true,
         "outerCorners": false,
@@ -66,7 +69,8 @@
         "rightClickAction": "controlCenter",
         "rightClickCommand": "",
         "rightClickFollowMouse": true,
-        "screenOverrides": [],
+        "screenOverrides": [
+        ],
         "showCapsule": true,
         "showOnWorkspaceSwitch": true,
         "showOutline": false,
@@ -131,13 +135,15 @@
             ],
             "right": [
                 {
-                    "blacklist": [],
+                    "blacklist": [
+                    ],
                     "chevronColor": "none",
                     "colorizeIcons": false,
                     "drawerEnabled": true,
                     "hidePassive": false,
                     "id": "Tray",
-                    "pinned": []
+                    "pinned": [
+                    ]
                 },
                 {
                     "id": "plugin:coldwire-echoflow"
@@ -178,7 +184,8 @@
         }
     },
     "brightness": {
-        "backlightDeviceMappings": [],
+        "backlightDeviceMappings": [
+        ],
         "brightnessStep": 5,
         "enableDdcSupport": false,
         "enforceMinimum": true
@@ -280,10 +287,22 @@
                 "widgets": [
                     {
                         "id": "plugin:coldwire-monitor",
-                        "x": 2880,
-                        "y": 1060,
+                        "roundedCorners": false,
                         "showBackground": false,
-                        "roundedCorners": false
+                        "x": 2880,
+                        "y": 1060
+                    }
+                ]
+            },
+            {
+                "name": "DP-6",
+                "widgets": [
+                    {
+                        "id": "plugin:coldwire-monitor",
+                        "roundedCorners": false,
+                        "showBackground": false,
+                        "x": 2880,
+                        "y": 1060
                     }
                 ]
             }
@@ -311,9 +330,11 @@
         "launcherIconColor": "none",
         "launcherPosition": "end",
         "launcherUseDistroLogo": false,
-        "monitors": [],
+        "monitors": [
+        ],
         "onlySameOutput": true,
-        "pinnedApps": [],
+        "pinnedApps": [
+        ],
         "pinnedStatic": false,
         "position": "bottom",
         "showDockIndicator": false,
@@ -368,7 +389,8 @@
         "lockScreenAnimations": false,
         "lockScreenBlur": 0,
         "lockScreenCountdownDuration": 10000,
-        "lockScreenMonitors": [],
+        "lockScreenMonitors": [
+        ],
         "lockScreenTint": 0,
         "passwordChars": false,
         "radiusRatio": 0,
@@ -428,7 +450,7 @@
         "weatherTaliaMascotAlways": false
     },
     "network": {
-        "bluetoothAutoConnect": true,
+        "bluetoothAutoConnect": false,
         "bluetoothDetailsViewMode": "grid",
         "bluetoothHideUnnamedDevices": false,
         "bluetoothRssiPollIntervalMs": 10000,
@@ -462,7 +484,8 @@
         "enabled": true,
         "location": "top_right",
         "lowUrgencyDuration": 3,
-        "monitors": [],
+        "monitors": [
+        ],
         "normalUrgencyDuration": 8,
         "overlayLayer": true,
         "respectExpireTimeout": false,
@@ -491,7 +514,8 @@
             2
         ],
         "location": "top_right",
-        "monitors": [],
+        "monitors": [
+        ],
         "overlayLayer": true
     },
     "plugins": {
@@ -635,12 +659,14 @@
         "directory": "/home/m31/Pictures/wallpapers/coldwire",
         "enableMultiMonitorDirectories": false,
         "enabled": true,
-        "favorites": [],
+        "favorites": [
+        ],
         "fillColor": "#050505",
         "fillMode": "crop",
         "hideWallpaperFilenames": false,
         "linkLightAndDarkWallpapers": true,
-        "monitorDirectories": [],
+        "monitorDirectories": [
+        ],
         "overviewBlur": 0.4,
         "overviewEnabled": false,
         "overviewTint": 0.6,
